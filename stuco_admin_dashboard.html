@@ -127,13 +127,69 @@
             padding: 0.45rem 0.8rem;
             background: var(--surface-soft);
         }
+
+        .site-header {
+            background: rgba(255, 255, 255, 0.85);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(12px);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--ink-muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .user-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.8rem;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.08);
+            color: var(--ink);
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        .logout-btn {
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            padding: 0.4rem 0.9rem;
+            font-weight: 600;
+            background: white;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
+    <header class="site-header">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between">
+            <div>
+                <p class="text-xs uppercase tracking-[0.3em] text-slate-400">STUCO Admin</p>
+                <h1 class="text-3xl font-semibold text-slate-900">Moderation and Operations</h1>
+            </div>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/feedback">Feedback</a>
+                <a href="/student_dashboard">Student Dashboard</a>
+                <span id="adminUser" class="user-pill">Checking session...</span>
+                <button id="logoutBtn" class="logout-btn" type="button">Sign out</button>
+            </div>
+        </div>
+    </header>
+
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-10">
         <header class="mb-8">
-            <p class="text-xs uppercase tracking-[0.3em] text-slate-400">STUCO Admin</p>
-            <h1 class="text-3xl font-semibold text-slate-900">Moderation and Operations</h1>
+            <h2 class="text-2xl font-semibold text-slate-900">Operations overview</h2>
             <p class="text-slate-600 mt-2">Review feedback, safeguard students, and track category trends.</p>
         </header>
 
@@ -219,6 +275,8 @@
         const API_RESET_DB = "/api/admin/reset_database";
         const API_CATEGORY_SUMMARIES = "/api/admin/category_summaries";
         const API_CLARIFICATION_REPLY_BASE = "/api/admin/clarification/";
+        const API_AUTH_ME = "/api/auth/me";
+        const API_AUTH_LOGOUT = "/api/auth/logout";
 
         const TEACHERS_LIST = [
             { id: 1, name: "Mr. Harper" }, { id: 2, name: "Ms. Williams" },
@@ -229,7 +287,7 @@
 
         // --- DOM Elements Cache ---
         const DOM = Object.fromEntries(
-            ['queueContainer', 'clarificationQueueContainer', 'statusFilter', 'categoryFilter', 'teacherSelect', 'pendingReview', 'pendingClarifications', 'clarificationPendingBtn', 'clarificationResolvedBtn', 'resetDatabaseBtn', 'tab-btn-moderation', 'tab-btn-analytics', 'tab-content-moderation', 'tab-content-analytics', 'analytics-container', 'analytics-loading']
+            ['queueContainer', 'clarificationQueueContainer', 'statusFilter', 'categoryFilter', 'teacherSelect', 'pendingReview', 'pendingClarifications', 'clarificationPendingBtn', 'clarificationResolvedBtn', 'resetDatabaseBtn', 'tab-btn-moderation', 'tab-btn-analytics', 'tab-content-moderation', 'tab-content-analytics', 'analytics-container', 'analytics-loading', 'adminUser', 'logoutBtn']
             .map(id => [id, document.getElementById(id)])
         );
 
@@ -351,6 +409,42 @@
             const urlParams = new URLSearchParams(window.location.search);
             const mockUser = urlParams.get('mock_user_id');
             return mockUser ? `?mock_user_id=${mockUser}` : '';
+        }
+
+        function routeByRole(role) {
+            if (role === 'teacher') {
+                window.location.href = '/teach_frontend.html';
+            } else if (role === 'student') {
+                window.location.href = '/student_dashboard';
+            } else {
+                window.location.href = '/stuco_admin_dashboard.html';
+            }
+        }
+
+        async function ensureAdminAccess() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const mockUser = urlParams.get('mock_user_id');
+            if (mockUser) {
+                DOM.adminUser.textContent = `Mock user #${mockUser}`;
+                DOM.logoutBtn.classList.add('hidden');
+                return true;
+            }
+            try {
+                const response = await fetch(API_AUTH_ME);
+                if (!response.ok) throw new Error('Not signed in');
+                const data = await response.json();
+                const user = data.user || {};
+                if (user.role !== 'stuco_admin') {
+                    routeByRole(user.role);
+                    return false;
+                }
+                DOM.adminUser.textContent = `${user.name || user.email} (Admin)`;
+                return true;
+            } catch (error) {
+                const next = encodeURIComponent('/stuco_admin_dashboard.html');
+                window.location.href = `/auth.html?next=${next}`;
+                return false;
+            }
         }
 
         async function fetchModerationQueue() {
@@ -542,7 +636,10 @@
         }
 
         // --- INIT ---
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            const allowed = await ensureAdminAccess();
+            if (!allowed) return;
+
             initFilters();
             initTabs();
             fetchModerationQueue();
@@ -555,6 +652,15 @@
             DOM.clarificationPendingBtn.addEventListener('click', () => fetchClarificationQueue('pending'));
             DOM.clarificationResolvedBtn.addEventListener('click', () => fetchClarificationQueue('resolved'));
             DOM.resetDatabaseBtn.addEventListener('click', handleResetDatabase);
+            DOM.logoutBtn.addEventListener('click', async () => {
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('mock_user_id')) {
+                    window.location.href = '/';
+                    return;
+                }
+                await fetch(API_AUTH_LOGOUT, { method: 'POST' });
+                window.location.href = '/';
+            });
         });
     </script>
 </body>

@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Feedback Dashboard</title>
+    <link rel="icon" href="/static/logo.png?v=2" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --ink: #1f2933;
+            --muted: #52606d;
+            --accent: #0ea5a6;
+            --accent-strong: #0f766e;
+            --surface: #ffffff;
+            --surface-soft: #f8fafc;
+            --border: rgba(15, 23, 42, 0.08);
+            --shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Source Sans 3", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at 10% 10%, #fef3c7 0%, transparent 35%),
+                radial-gradient(circle at 90% 0%, #dbeafe 0%, transparent 35%),
+                radial-gradient(circle at 80% 90%, #dcfce7 0%, transparent 40%),
+                #f7f3ee;
+            min-height: 100vh;
+        }
+
+        h1, h2, h3 {
+            font-family: "Space Grotesk", sans-serif;
+            letter-spacing: -0.02em;
+        }
+
+        .container {
+            width: min(1140px, 92vw);
+            margin: 0 auto;
+        }
+
+        .header {
+            padding: 1.8rem 0 1rem;
+        }
+
+        .header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+        }
+
+        .logo {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--accent), #22d3ee);
+            box-shadow: 0 10px 20px rgba(14, 165, 166, 0.3);
+            display: grid;
+            place-items: center;
+            color: white;
+            font-weight: 700;
+        }
+
+        .nav {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            flex-wrap: wrap;
+        }
+
+        .nav a {
+            text-decoration: none;
+            color: var(--ink);
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.85rem;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.08);
+            color: var(--ink);
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .btn {
+            border: none;
+            cursor: pointer;
+            border-radius: 16px;
+            padding: 0.8rem 1.3rem;
+            font-weight: 700;
+            font-family: "Space Grotesk", sans-serif;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #22d3ee);
+            color: white;
+            box-shadow: 0 14px 24px rgba(14, 165, 166, 0.25);
+        }
+
+        .btn-secondary {
+            background: white;
+            border: 1px solid var(--border);
+            color: var(--ink);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1.2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .filters {
+            margin: 2rem 0 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .select {
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 0.6rem 0.9rem;
+            background: var(--surface-soft);
+        }
+
+        .feedback-list {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .feedback-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            padding: 1.3rem;
+            box-shadow: var(--shadow);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.2rem 0.7rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .badge.green { background: #dcfce7; color: #166534; }
+        .badge.red { background: #fee2e2; color: #991b1b; }
+        .badge.gray { background: #e2e8f0; color: #475569; }
+        .badge.blue { background: #dbeafe; color: #1d4ed8; }
+
+        .empty {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px dashed rgba(15, 23, 42, 0.2);
+            border-radius: 20px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .reveal {
+            opacity: 0;
+            animation: fadeUp 0.7s ease forwards;
+        }
+
+        .reveal.delay-1 { animation-delay: 0.1s; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 640px) {
+            .nav { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container header-row">
+            <div class="brand">
+                <div class="logo">S</div>
+                <div>
+                    <p class="text-sm uppercase tracking-[0.25em] text-slate-400">STUCO</p>
+                    <h1 class="text-2xl font-semibold">Student Dashboard</h1>
+                </div>
+            </div>
+            <div class="nav">
+                <a href="/">Home</a>
+                <a href="/feedback">Submit feedback</a>
+                <span id="userBadge" class="pill">Checking session...</span>
+                <button id="logoutBtn" class="btn btn-secondary" type="button">Sign out</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="stats-grid reveal">
+            <div class="stat-card">
+                <p class="text-sm text-slate-500">Total submissions</p>
+                <h2 id="statTotal" class="text-3xl font-semibold">--</h2>
+            </div>
+            <div class="stat-card">
+                <p class="text-sm text-slate-500">Approved</p>
+                <h2 id="statApproved" class="text-3xl font-semibold">--</h2>
+            </div>
+            <div class="stat-card">
+                <p class="text-sm text-slate-500">Pending or new</p>
+                <h2 id="statPending" class="text-3xl font-semibold">--</h2>
+            </div>
+            <div class="stat-card">
+                <p class="text-sm text-slate-500">Flagged</p>
+                <h2 id="statFlagged" class="text-3xl font-semibold">--</h2>
+            </div>
+        </section>
+
+        <div class="filters reveal delay-1">
+            <div>
+                <label for="statusFilter" class="text-sm font-semibold text-slate-600">Filter by status</label>
+                <select id="statusFilter" class="select">
+                    <option value="all">All</option>
+                    <option value="Approved">Approved</option>
+                    <option value="New">New</option>
+                    <option value="Retracted by Admin">Retracted by Admin</option>
+                    <option value="Screened - Escalation">Screened - Escalation</option>
+                </select>
+            </div>
+            <button id="refreshBtn" class="btn btn-primary" type="button">Refresh</button>
+        </div>
+
+        <section id="feedbackList" class="feedback-list reveal delay-1"></section>
+        <div id="emptyState" class="empty hidden">
+            <h3 class="text-xl font-semibold">No feedback yet</h3>
+            <p class="text-slate-600 mt-2">Once you submit feedback, it will show up here with status updates.</p>
+            <a href="/feedback" class="btn btn-primary" style="margin-top: 1rem; display: inline-block;">Submit feedback</a>
+        </div>
+    </main>
+
+    <script>
+        const API_STUDENT_FEEDBACK = '/api/student/feedback';
+        const API_AUTH_ME = '/api/auth/me';
+        const API_AUTH_LOGOUT = '/api/auth/logout';
+
+        const userBadge = document.getElementById('userBadge');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const statusFilter = document.getElementById('statusFilter');
+        const feedbackList = document.getElementById('feedbackList');
+        const emptyState = document.getElementById('emptyState');
+
+        const statTotal = document.getElementById('statTotal');
+        const statApproved = document.getElementById('statApproved');
+        const statPending = document.getElementById('statPending');
+        const statFlagged = document.getElementById('statFlagged');
+
+        const CATEGORY_MAP = {
+            'teacher': 'Teacher Suggestions',
+            'policy': 'Policy Suggestions',
+            'food': 'Food Suggestions',
+            'equipment': 'General Services (GS)',
+            'school-buses': 'School Bus Service',
+            'other': 'Other Suggestions',
+            'help': 'Reaching Out for Help'
+        };
+
+        let allFeedback = [];
+
+        const getMockUser = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('mock_user_id');
+        };
+
+        const getAuthQuery = () => {
+            const mockUser = getMockUser();
+            return mockUser ? `?mock_user_id=${mockUser}` : '';
+        };
+
+        const routeByRole = (role) => {
+            if (role === 'teacher') {
+                window.location.href = '/teach_frontend.html';
+            } else if (role === 'stuco_admin') {
+                window.location.href = '/stuco_admin_dashboard.html';
+            } else {
+                window.location.href = '/student_dashboard';
+            }
+        };
+
+        const escapeHtml = (value) => {
+            if (value === null || value === undefined) return '';
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        };
+
+        const ensureStudentAccess = async () => {
+            const mockUser = getMockUser();
+            if (mockUser) {
+                userBadge.textContent = `Mock user #${mockUser}`;
+                logoutBtn.classList.add('hidden');
+                return true;
+            }
+            try {
+                const response = await fetch(API_AUTH_ME);
+                if (!response.ok) throw new Error('Not signed in');
+                const data = await response.json();
+                const user = data.user || {};
+                if (user.role !== 'student') {
+                    routeByRole(user.role);
+                    return false;
+                }
+                userBadge.textContent = `${user.name || user.email} (Student)`;
+                return true;
+            } catch (error) {
+                const next = encodeURIComponent('/student_dashboard');
+                window.location.href = `/auth.html?next=${next}`;
+                return false;
+            }
+        };
+
+        const badgeClass = (status) => {
+            if (status === 'Approved') return 'badge green';
+            if (status === 'Screened - Escalation') return 'badge red';
+            if (status === 'Retracted by Admin') return 'badge gray';
+            return 'badge blue';
+        };
+
+        const updateStats = (items) => {
+            const approved = items.filter(item => item.status === 'Approved').length;
+            const flagged = items.filter(item => item.status === 'Screened - Escalation').length;
+            const pending = items.filter(item => item.status === 'New').length;
+
+            statTotal.textContent = items.length;
+            statApproved.textContent = approved;
+            statFlagged.textContent = flagged;
+            statPending.textContent = pending;
+        };
+
+        const renderList = () => {
+            const filter = statusFilter.value;
+            const items = filter === 'all'
+                ? allFeedback
+                : allFeedback.filter(item => item.status === filter);
+
+            if (!items.length) {
+                feedbackList.innerHTML = '';
+                emptyState.classList.toggle('hidden', allFeedback.length !== 0);
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            feedbackList.innerHTML = items.map(item => {
+                const label = CATEGORY_MAP[item.category] || item.category;
+                const teacher = item.teacher_name ? `Teacher: ${escapeHtml(item.teacher_name)}` : 'General feedback';
+                const dateText = item.created_at ? new Date(item.created_at).toLocaleString() : 'Recent';
+                return `
+                    <div class="feedback-card">
+                        <div class="flex items-center justify-between gap-3 flex-wrap">
+                            <h3 class="text-lg font-semibold">${label}</h3>
+                            <span class="${badgeClass(item.status)}">${item.status}</span>
+                        </div>
+                        <p class="text-sm text-slate-500 mt-2">${teacher} · ${dateText}</p>
+                        ${item.context_detail ? `<p class="text-sm text-slate-600 mt-2">Context: ${escapeHtml(item.context_detail)}</p>` : ''}
+                    </div>
+                `;
+            }).join('');
+        };
+
+        const loadFeedback = async () => {
+            try {
+                const response = await fetch(API_STUDENT_FEEDBACK + getAuthQuery());
+                if (!response.ok) throw new Error('Failed to load submissions');
+                allFeedback = await response.json();
+                updateStats(allFeedback);
+                renderList();
+            } catch (error) {
+                feedbackList.innerHTML = `<div class="feedback-card">Unable to load feedback history.</div>`;
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const allowed = await ensureStudentAccess();
+            if (!allowed) return;
+
+            await loadFeedback();
+
+            statusFilter.addEventListener('change', renderList);
+            document.getElementById('refreshBtn').addEventListener('click', loadFeedback);
+            logoutBtn.addEventListener('click', async () => {
+                if (getMockUser()) {
+                    window.location.href = '/';
+                    return;
+                }
+                await fetch(API_AUTH_LOGOUT, { method: 'POST' });
+                window.location.href = '/';
+            });
+        });
+    </script>
+</body>
+</html>

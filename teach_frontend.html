@@ -139,6 +139,41 @@
             border-color: var(--accent);
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
         }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--ink-muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .user-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.8rem;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.08);
+            color: var(--ink);
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        .logout-btn {
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            padding: 0.4rem 0.9rem;
+            font-weight: 600;
+            background: white;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -149,7 +184,13 @@
                     <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Teacher Console</p>
                     <h1 class="text-3xl font-semibold">Teaching Feedback Overview</h1>
                 </div>
-                <a href="/" class="text-sm font-semibold text-slate-600 hover:text-slate-900 transition">Student Portal</a>
+                <div class="nav-links">
+                    <a href="/">Home</a>
+                    <a href="/feedback">Feedback</a>
+                    <a href="/student_dashboard">Student Dashboard</a>
+                    <span id="teacherUser" class="user-pill">Checking session...</span>
+                    <button id="logoutBtn" class="logout-btn" type="button">Sign out</button>
+                </div>
             </div>
         </header>
 
@@ -250,6 +291,8 @@
         const API_SUMMARY_URL = "/api/teacher/holistic_summary";
         const API_CLARIFICATION_URL = "/api/clarification_request";
         const API_TEACHER_CLARIFICATIONS_URL = "/api/teacher/clarifications";
+        const API_AUTH_ME = "/api/auth/me";
+        const API_AUTH_LOGOUT = "/api/auth/logout";
 
         let trendChartInstance = null;
 
@@ -272,12 +315,50 @@
         const teacherClarificationPendingBtn = document.getElementById('teacher-clarification-pending-btn');
         const teacherClarificationResolvedBtn = document.getElementById('teacher-clarification-resolved-btn');
         const teacherClarificationContainer = document.getElementById('teacher-clarification-container');
+        const teacherUser = document.getElementById('teacherUser');
+        const logoutBtn = document.getElementById('logoutBtn');
 
         // --- UTILITIES ---
         const getAuthQuery = () => {
             const urlParams = new URLSearchParams(window.location.search);
             const mockUser = urlParams.get('mock_user_id');
             return mockUser ? `?mock_user_id=${mockUser}` : '';
+        };
+
+        const routeByRole = (role) => {
+            if (role === 'stuco_admin') {
+                window.location.href = '/stuco_admin_dashboard.html';
+            } else if (role === 'student') {
+                window.location.href = '/student_dashboard';
+            } else {
+                window.location.href = '/teach_frontend.html';
+            }
+        };
+
+        const ensureTeacherAccess = async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const mockUser = urlParams.get('mock_user_id');
+            if (mockUser) {
+                teacherUser.textContent = `Mock user #${mockUser}`;
+                logoutBtn.classList.add('hidden');
+                return true;
+            }
+            try {
+                const response = await fetch(API_AUTH_ME);
+                if (!response.ok) throw new Error('Not signed in');
+                const data = await response.json();
+                const user = data.user || {};
+                if (user.role !== 'teacher') {
+                    routeByRole(user.role);
+                    return false;
+                }
+                teacherUser.textContent = `${user.name || user.email} (Teacher)`;
+                return true;
+            } catch (error) {
+                const next = encodeURIComponent('/teach_frontend.html');
+                window.location.href = `/auth.html?next=${next}`;
+                return false;
+            }
         };
 
         const setLoadingState = (isLoading) => {
@@ -501,7 +582,9 @@
         };
 
         // --- INITIALIZATION & LISTENERS ---
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            const allowed = await ensureTeacherAccess();
+            if (!allowed) return;
             loadAllData();
             clarificationBtn.addEventListener('click', () => {
                 clarificationTextarea.value = '';
@@ -514,6 +597,16 @@
 
             teacherClarificationPendingBtn.addEventListener('click', () => fetchTeacherClarifications('pending'));
             teacherClarificationResolvedBtn.addEventListener('click', () => fetchTeacherClarifications('resolved'));
+
+            logoutBtn.addEventListener('click', async () => {
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('mock_user_id')) {
+                    window.location.href = '/';
+                    return;
+                }
+                await fetch(API_AUTH_LOGOUT, { method: 'POST' });
+                window.location.href = '/';
+            });
         });
     </script>
 </body>

@@ -3,6 +3,8 @@
 A Flask-based feedback platform for Student Council (STUCO) to collect anonymous feedback, moderate content, and deliver AI-assisted summaries to teachers and admins.
 
 ## Features
+- Session-based authentication with signup/login and invite codes for staff roles
+- Dedicated home page + student feedback hub + student dashboard
 - Three role-based dashboards: Student, Teacher, and STUCO Admin
 - Student submissions across multiple categories (teacher, food, policy, equipment/GS, school buses, other, help)
 - Optional teacher-specific ratings (clarity, pacing, resources, support)
@@ -31,6 +33,8 @@ A Flask-based feedback platform for Student Council (STUCO) to collect anonymous
    ```bash
    DEEPSEEK_API_KEY=your_key_here
    SECRET_KEY=your_secret
+   TEACHER_INVITE_CODE=teacher-code
+   ADMIN_INVITE_CODE=admin-code
    ```
 3. Run the server:
    ```bash
@@ -48,15 +52,30 @@ These can be set as environment variables:
 - `ENABLE_WORKER`: set to `0` or `false` to disable the background worker
 - `DATABASE_URL`: override the database connection string
 - `DEEPSEEK_API_KEY`: enables real toxicity checks and summaries
+- `STUDENT_SIGNUP_ENABLED`: set to `0` to disable student self-signup
+- `TEACHER_INVITE_CODE`: invite code required for teacher accounts
+- `ADMIN_INVITE_CODE`: invite code required for STUCO admin accounts
+- `ALLOW_MOCK_AUTH`: set to `0` to disable mock_user_id shortcuts
+- `DEMO_STUDENT_PASSWORD`, `DEMO_TEACHER_PASSWORD`, `DEMO_ADMIN_PASSWORD`: override seeded demo passwords
 
 In `app.py`, you can also tweak:
 - `DEEPTHINK_OR_NOT`: enable real AI summaries
 - `WORKER_SLEEP_INTERVAL`: background worker interval
 
 ## Dashboards
-- Student: `http://127.0.0.1:5001/?mock_user_id=1`
-- Teacher: `http://127.0.0.1:5001/teach_frontend.html?mock_user_id=2`
-- Admin: `http://127.0.0.1:5001/stuco_admin_dashboard.html?mock_user_id=3`
+- Home: `http://127.0.0.1:5001/`
+- Auth: `http://127.0.0.1:5001/auth.html`
+- Student Feedback Hub: `http://127.0.0.1:5001/feedback`
+- Student Dashboard: `http://127.0.0.1:5001/student_dashboard`
+- Teacher: `http://127.0.0.1:5001/teach_frontend.html`
+- Admin: `http://127.0.0.1:5001/stuco_admin_dashboard.html`
+
+You can still use mock auth by appending `?mock_user_id=1/2/3` when `ALLOW_MOCK_AUTH=1`.
+
+## Demo Accounts (Seed Data)
+- Student: `student@test.com` / `student123`
+- Teacher: `harper@test.com` / `teacher123`
+- Admin: `chen@test.com` / `admin123`
 
 ## Database Models
 - `User`: role and identity
@@ -74,7 +93,10 @@ In `app.py`, you can also tweak:
 
 ## Project Structure
 - `app.py`: Flask app, models, AI logic, background worker
-- `stu_frontend.html`: student portal
+- `home.html`: public landing page
+- `auth.html`: login/signup
+- `stu_frontend.html`: student feedback hub
+- `student_dashboard.html`: student submission history
 - `teach_frontend.html`: teacher dashboard
 - `stuco_admin_dashboard.html`: admin dashboard
 - `requirements.txt`: Python dependencies

@@ -13,12 +13,14 @@ import atexit
 import webbrowser
 from collections import defaultdict
 from typing import Any
+from uuid import uuid4
 
 import requests
-from flask import Flask, jsonify, request, g, render_template
+from flask import Flask, jsonify, request, g, render_template, session
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import func
+from sqlalchemy import func, inspect, text
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # --- Config ---
 BASE_DIR = Path(__file__).resolve().parent
@@ -42,6 +44,11 @@ HOST = os.getenv('HOST', '0.0.0.0')
 PORT = int(os.getenv('PORT', '5001'))
 AUTO_OPEN_BROWSER = os.getenv('AUTO_OPEN_BROWSER', '1').lower() not in {'0', 'false', 'no'}
 ENABLE_WORKER = os.getenv('ENABLE_WORKER', '1').lower() not in {'0', 'false', 'no'}
+# Auth configuration
+STUDENT_SIGNUP_ENABLED = os.getenv('STUDENT_SIGNUP_ENABLED', '1').lower() not in {'0', 'false', 'no'}
+TEACHER_INVITE_CODE = os.getenv('TEACHER_INVITE_CODE')
+ADMIN_INVITE_CODE = os.getenv('ADMIN_INVITE_CODE')
+ALLOW_MOCK_AUTH = os.getenv('ALLOW_MOCK_AUTH', '1').lower() not in {'0', 'false', 'no'}
 # ======================================================================
 
 USE_REAL_DEEPSEEK = bool(DEEPSEEK_API_KEY)
@@ -79,6 +86,10 @@ class User(BaseModel):
     email = db.Column(db.String(120), unique=True, nullable=False)
     name = db.Column(db.String(120), nullable=True) 
     role = db.Column(db.String(50), nullable=False)
+    password_hash = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, default=db.func.now())
+    last_login_at = db.Column(db.DateTime, nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
     
 class Teacher(BaseModel):
     __tablename__ = 'teachers'
@@ -100,6 +111,7 @@ class Feedback(BaseModel):
     year_level_submitted = db.Column(db.String(10), nullable=True) 
     willing_to_share_name = db.Column(db.Boolean, default=False)
     submitted_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.now())
     toxicity_score = db.Column(db.Float, default=0.0)
     is_inappropriate = db.Column(db.Boolean, default=False)
     status = db.Column(db.String(50), default='New') 
@@ -153,30 +165,100 @@ class CategorySummary(BaseModel):
 # ======================================================================
 # --- Utility Functions & Auth ---
 # ======================================================================
-    
+EMAIL_RE = re.compile(r"^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
+
+
+def normalize_email(email):
+    return email.strip().lower()
+
+
+def is_valid_email(email):
+    return bool(EMAIL_RE.match(email or ""))
+
+
+def build_user_payload(user, teacher_profile=None):
+    payload = {
+        "id": user.id,
+        "email": user.email,
+        "name": user.name,
+        "role": user.role
+    }
+    if teacher_profile:
+        payload["teacher_id"] = teacher_profile.id
+    return payload
+
+
+def resolve_session_user():
+    user_id = session.get("user_id")
+    if not user_id:
+        return None
+    user = db.session.get(User, user_id)
+    if not user or user.is_active is False:
+        session.pop("user_id", None)
+        return None
+    return user
+
+
 def auth_required(role=None):
     def wrapper(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            try:
-                mock_user_id = int(request.args.get('mock_user_id', 1))
-            except (TypeError, ValueError):
-                return jsonify({"error": "Invalid mock_user_id."}), 400
-            g.user = db.session.get(User, mock_user_id)
-            if not g.user:
+            user = resolve_session_user()
+            if not user and ALLOW_MOCK_AUTH:
+                mock_user_id = request.args.get('mock_user_id') or request.headers.get('X-Mock-User-Id')
+                if mock_user_id is not None:
+                    try:
+                        mock_user_id = int(mock_user_id)
+                    except (TypeError, ValueError):
+                        return jsonify({"error": "Invalid mock_user_id."}), 400
+                    user = db.session.get(User, mock_user_id)
+
+            if not user:
                 return jsonify({"error": "Authentication required."}), 401
-            if role and g.user.role != role:
+            if user.is_active is False:
+                return jsonify({"error": "Account disabled. Contact an administrator."}), 403
+            if role and user.role != role:
                 return jsonify({"error": f"Access denied. Required role: {role}"}), 403
-            if g.user.role in ['teacher', 'stuco_admin']:
-                g.teacher_profile = Teacher.query.filter_by(user_id=g.user.id).first()
-                if not g.teacher_profile:
-                    if g.user.role == 'stuco_admin':
-                        g.teacher_profile = None 
-                    else:
-                        return jsonify({"error": "Teacher profile not found."}), 403
+
+            g.user = user
+            g.teacher_profile = None
+            if user.role in ['teacher', 'stuco_admin']:
+                g.teacher_profile = Teacher.query.filter_by(user_id=user.id).first()
+                if not g.teacher_profile and user.role == 'teacher':
+                    return jsonify({"error": "Teacher profile not found."}), 403
+
             return f(*args, **kwargs)
         return decorated_function
     return wrapper
+
+
+def ensure_schema_updates():
+    inspector = inspect(db.engine)
+    table_names = set(inspector.get_table_names())
+    schema_updates = {
+        "users": [
+            ("password_hash", "VARCHAR(255)"),
+            ("created_at", "DATETIME"),
+            ("last_login_at", "DATETIME"),
+            ("is_active", "BOOLEAN")
+        ],
+        "feedback": [
+            ("created_at", "DATETIME")
+        ]
+    }
+    with db.engine.begin() as connection:
+        for table, columns in schema_updates.items():
+            if table not in table_names:
+                continue
+            existing_columns = {col["name"] for col in inspector.get_columns(table)}
+            for column_name, column_type in columns:
+                if column_name in existing_columns:
+                    continue
+                try:
+                    connection.execute(text(f"ALTER TABLE {table} ADD COLUMN {column_name} {column_type}"))
+                    print(f"INFO: Added column '{column_name}' to '{table}'.")
+                except Exception as exc:
+                    print(f"WARNING: Could not add column '{column_name}' to '{table}': {exc}")
 
 # ======================================================================
 # --- AI Functions (Toxicity & Summarization) ---
@@ -620,7 +702,7 @@ def start_worker_thread():
     return True
 
 def open_browser():
-    url = f"http://{BROWSER_HOST}:{PORT}/?mock_user_id=1"
+    url = f"http://{BROWSER_HOST}:{PORT}/"
     try:
         webbrowser.open(url)
     except Exception as exc:
@@ -635,10 +717,13 @@ def seed_data():
         print("INFO: Database already contains data. Skipping seed.")
         return
     print("INFO: Database is empty. Seeding initial data...")
+    demo_student_password = os.getenv('DEMO_STUDENT_PASSWORD', 'student123')
+    demo_teacher_password = os.getenv('DEMO_TEACHER_PASSWORD', 'teacher123')
+    demo_admin_password = os.getenv('DEMO_ADMIN_PASSWORD', 'admin123')
     db.session.add_all([
-        User(id=1, azure_oid='student_1', email='student@test.com', name='Student A', role='student'),
-        User(id=2, azure_oid='teacher_1', email='harper@test.com', name='Mr. Harper', role='teacher'),
-        User(id=3, azure_oid='admin_1', email='chen@test.com', name='Ms. Chen', role='stuco_admin')
+        User(id=1, azure_oid='student_1', email='student@test.com', name='Student A', role='student', password_hash=generate_password_hash(demo_student_password)),
+        User(id=2, azure_oid='teacher_1', email='harper@test.com', name='Mr. Harper', role='teacher', password_hash=generate_password_hash(demo_teacher_password)),
+        User(id=3, azure_oid='admin_1', email='chen@test.com', name='Ms. Chen', role='stuco_admin', password_hash=generate_password_hash(demo_admin_password))
     ])
     db.session.commit()
     db.session.add_all([
@@ -692,15 +777,174 @@ def seed_data():
 # ======================================================================
 @app.route('/', methods=['GET'])
 def index():
+    return render_template('home.html')
+
+@app.route('/auth.html', methods=['GET'])
+def auth_page():
+    return render_template('auth.html')
+
+@app.route('/feedback', methods=['GET'])
+def feedback_portal():
     return render_template('stu_frontend.html')
+
+@app.route('/student_dashboard', methods=['GET'])
+def student_dashboard():
+    return render_template('student_dashboard.html')
+
 @app.route('/teach_frontend.html', methods=['GET'])
-@auth_required(role='teacher')
 def teacher_dashboard():
     return render_template('teach_frontend.html')
+
 @app.route('/stuco_admin_dashboard.html', methods=['GET'])
-@auth_required(role='stuco_admin')
 def stuco_admin_dashboard():
     return render_template('stuco_admin_dashboard.html')
+
+# ======================================================================
+# --- Auth API Routes ---
+# ======================================================================
+@app.route('/api/auth/register', methods=['POST'])
+def register_user():
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({'error': 'Invalid or missing JSON body.'}), 400
+
+    name = (data.get('name') or '').strip()
+    email = normalize_email(data.get('email') or '')
+    password = data.get('password') or ''
+    requested_role = (data.get('role') or 'student').strip().lower()
+    invite_code = (data.get('invite_code') or '').strip()
+    year_levels = data.get('year_levels') or []
+
+    if not name or not email or not password:
+        return jsonify({'error': 'Name, email, and password are required.'}), 400
+    if not is_valid_email(email):
+        return jsonify({'error': 'Please enter a valid email address.'}), 400
+    if len(password) < 8:
+        return jsonify({'error': 'Password must be at least 8 characters.'}), 400
+
+    if User.query.filter_by(email=email).first():
+        return jsonify({'error': 'An account with this email already exists.'}), 409
+
+    role = 'student'
+    if invite_code:
+        if ADMIN_INVITE_CODE and invite_code == ADMIN_INVITE_CODE:
+            role = 'stuco_admin'
+        elif TEACHER_INVITE_CODE and invite_code == TEACHER_INVITE_CODE:
+            role = 'teacher'
+        else:
+            return jsonify({'error': 'Invalid invite code.'}), 403
+    elif requested_role in {'teacher', 'stuco_admin'}:
+        return jsonify({'error': 'Invite code required for this role.'}), 403
+    elif not STUDENT_SIGNUP_ENABLED:
+        return jsonify({'error': 'Student signups are currently disabled.'}), 403
+
+    year_level_flags = {'year_6': False, 'year_7': False, 'year_8': False}
+    if isinstance(year_levels, str):
+        year_levels = [item.strip() for item in year_levels.split(',') if item.strip()]
+    if isinstance(year_levels, list):
+        for level in year_levels:
+            if level == 'Year 6':
+                year_level_flags['year_6'] = True
+            elif level == 'Year 7':
+                year_level_flags['year_7'] = True
+            elif level == 'Year 8':
+                year_level_flags['year_8'] = True
+
+    if role == 'teacher' and not any(year_level_flags.values()):
+        return jsonify({'error': 'Select at least one year level for teacher accounts.'}), 400
+
+    user = User(
+        azure_oid=f"local:{uuid4()}",
+        email=email,
+        name=name,
+        role=role,
+        password_hash=generate_password_hash(password)
+    )
+    db.session.add(user)
+    db.session.flush()
+
+    teacher_profile = None
+    if role == 'teacher':
+        teacher_profile = Teacher.query.filter_by(email=email).first()
+        if teacher_profile:
+            if teacher_profile.user_id:
+                db.session.rollback()
+                return jsonify({'error': 'Teacher profile already linked to an account.'}), 409
+            teacher_profile.user_id = user.id
+            teacher_profile.name = name
+            teacher_profile.year_6 = year_level_flags['year_6']
+            teacher_profile.year_7 = year_level_flags['year_7']
+            teacher_profile.year_8 = year_level_flags['year_8']
+        else:
+            teacher_profile = Teacher(
+                user_id=user.id,
+                name=name,
+                email=email,
+                year_6=year_level_flags['year_6'],
+                year_7=year_level_flags['year_7'],
+                year_8=year_level_flags['year_8']
+            )
+            db.session.add(teacher_profile)
+
+    db.session.commit()
+    session['user_id'] = user.id
+
+    return jsonify({
+        'message': 'Account created successfully.',
+        'user': build_user_payload(user, teacher_profile)
+    }), 201
+
+
+@app.route('/api/auth/login', methods=['POST'])
+def login_user():
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({'error': 'Invalid or missing JSON body.'}), 400
+
+    email = normalize_email(data.get('email') or '')
+    password = data.get('password') or ''
+    if not email or not password:
+        return jsonify({'error': 'Email and password are required.'}), 400
+
+    user = User.query.filter_by(email=email).first()
+    if not user or not user.password_hash or not check_password_hash(user.password_hash, password):
+        return jsonify({'error': 'Invalid email or password.'}), 401
+    if user.is_active is False:
+        return jsonify({'error': 'Account disabled. Contact an administrator.'}), 403
+
+    session['user_id'] = user.id
+    user.last_login_at = db.func.now()
+    db.session.commit()
+
+    teacher_profile = None
+    if user.role == 'teacher':
+        teacher_profile = Teacher.query.filter_by(user_id=user.id).first()
+
+    return jsonify({
+        'message': 'Login successful.',
+        'user': build_user_payload(user, teacher_profile)
+    }), 200
+
+
+@app.route('/api/auth/logout', methods=['POST'])
+def logout_user():
+    session.pop('user_id', None)
+    return jsonify({'message': 'Logged out successfully.'}), 200
+
+
+@app.route('/api/auth/me', methods=['GET'])
+def get_current_user():
+    user = resolve_session_user()
+    if not user:
+        return jsonify({'error': 'Authentication required.'}), 401
+
+    teacher_profile = None
+    if user.role == 'teacher':
+        teacher_profile = Teacher.query.filter_by(user_id=user.id).first()
+
+    return jsonify({
+        'user': build_user_payload(user, teacher_profile)
+    }), 200
 
 # ======================================================================
 # --- Student API Routes ---
@@ -791,12 +1035,41 @@ def submit_feedback():
             db.session.add(job)
             db.session.commit()
             
-        return jsonify({'message': f'Feedback submitted successfully. Status: {new_feedback.status}', 'id': new_feedback.id}), 201
+        return jsonify({'message': f'Feedback submitted successfully. Status: {new_feedback.status}', 'id': new_feedback.id, 'status': new_feedback.status}), 201
     
     except Exception as e:
         db.session.rollback()
         print(f"Error submitting feedback: {e}")
         return jsonify({'error': 'Internal server error during submission.'}), 500
+
+# ======================================================================
+# --- Student Dashboard API Routes ---
+# ======================================================================
+@app.route('/api/student/feedback', methods=['GET'])
+@auth_required(role='student')
+def get_student_feedback():
+    status_filter = request.args.get('status')
+    query = Feedback.query.filter_by(submitted_by_user_id=g.user.id)
+    if status_filter:
+        query = query.filter(Feedback.status == status_filter)
+
+    feedback_items = query.order_by(Feedback.id.desc()).all()
+    results = []
+    for item in feedback_items:
+        teacher_name = None
+        if item.teacher_id:
+            teacher = db.session.get(Teacher, item.teacher_id)
+            teacher_name = teacher.name if teacher else None
+        results.append({
+            'id': item.id,
+            'category': item.category,
+            'status': item.status,
+            'teacher_name': teacher_name,
+            'context_detail': item.context_detail,
+            'year_level': item.year_level_submitted,
+            'created_at': item.created_at.isoformat() if item.created_at else None
+        })
+    return jsonify(results)
 
 # ======================================================================
 # --- Teacher API Routes ---
@@ -1114,6 +1387,7 @@ def reset_database():
 
         db.drop_all()
         db.create_all()
+        ensure_schema_updates()
         seed_data()
         
         print("INFO: Database reset and re-seed successful.")
@@ -1131,6 +1405,7 @@ def reset_database():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        ensure_schema_updates()
         seed_data()
     
     if ENABLE_WORKER:
@@ -1148,8 +1423,11 @@ if __name__ == '__main__':
     atexit.register(stop_worker)
         
     print("\n--- SERVER READY ---")
-    print(f"Student: http://{BROWSER_HOST}:{PORT}/?mock_user_id=1")
-    print(f"Teacher: http://{BROWSER_HOST}:{PORT}/teach_frontend.html?mock_user_id=2")
-    print(f"Admin: http://{BROWSER_HOST}:{PORT}/stuco_admin_dashboard.html?mock_user_id=3")
+    print(f"Home: http://{BROWSER_HOST}:{PORT}/")
+    print(f"Student Feedback: http://{BROWSER_HOST}:{PORT}/feedback")
+    print(f"Student Dashboard: http://{BROWSER_HOST}:{PORT}/student_dashboard")
+    print(f"Teacher: http://{BROWSER_HOST}:{PORT}/teach_frontend.html")
+    print(f"Admin: http://{BROWSER_HOST}:{PORT}/stuco_admin_dashboard.html")
+    print("Dev shortcut: append ?mock_user_id=1/2/3 if ALLOW_MOCK_AUTH is enabled.")
     print("--------------------------------------------------")
     app.run(host=HOST, port=PORT, debug=False)

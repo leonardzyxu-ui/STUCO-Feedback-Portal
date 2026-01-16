@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STUCO Account Access</title>
+    <link rel="icon" href="/static/logo.png?v=2" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --ink: #1f2933;
+            --muted: #52606d;
+            --accent: #0ea5a6;
+            --accent-strong: #0f766e;
+            --accent-warm: #f97316;
+            --surface: #ffffff;
+            --surface-soft: #f8fafc;
+            --border: rgba(15, 23, 42, 0.08);
+            --shadow: 0 22px 40px rgba(15, 23, 42, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Manrope", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at 10% 20%, #cffafe 0%, transparent 35%),
+                radial-gradient(circle at 90% 0%, #fed7aa 0%, transparent 35%),
+                radial-gradient(circle at 80% 85%, #bbf7d0 0%, transparent 40%),
+                #f7f3ee;
+            min-height: 100vh;
+        }
+
+        h1, h2, h3 {
+            font-family: "Space Grotesk", sans-serif;
+            letter-spacing: -0.02em;
+        }
+
+        .container {
+            width: min(1100px, 92vw);
+            margin: 0 auto;
+        }
+
+        .auth-shell {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 2.4rem;
+            padding: 3rem 0 4rem;
+            align-items: center;
+        }
+
+        .intro {
+            background: rgba(255, 255, 255, 0.75);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .intro h1 {
+            font-size: clamp(2.2rem, 4vw, 3rem);
+            margin: 0 0 1rem;
+        }
+
+        .intro ul {
+            padding-left: 1.2rem;
+            color: var(--muted);
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 0.6rem 0.8rem;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: #f1f5f9;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, var(--accent), #22d3ee);
+            border-color: transparent;
+            color: white;
+            box-shadow: 0 14px 24px rgba(14, 165, 166, 0.25);
+        }
+
+        label {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .field {
+            width: 100%;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: var(--surface-soft);
+            padding: 0.8rem 1rem;
+            font-size: 1rem;
+            margin-top: 0.4rem;
+        }
+
+        .field:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(14, 165, 166, 0.2);
+        }
+
+        .btn {
+            border: none;
+            cursor: pointer;
+            border-radius: 16px;
+            padding: 0.9rem 1.4rem;
+            font-weight: 700;
+            font-family: "Space Grotesk", sans-serif;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #22d3ee);
+            color: white;
+            box-shadow: 0 16px 28px rgba(14, 165, 166, 0.25);
+        }
+
+        .btn-secondary {
+            background: white;
+            border: 1px solid var(--border);
+            color: var(--ink);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .message {
+            margin-top: 1rem;
+            padding: 0.8rem 1rem;
+            border-radius: 14px;
+            font-weight: 600;
+        }
+
+        .message.error { background: #fee2e2; color: #991b1b; }
+        .message.success { background: #dcfce7; color: #166534; }
+        .message.info { background: #dbeafe; color: #1d4ed8; }
+
+        .row {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        }
+
+        .role-grid {
+            display: grid;
+            gap: 0.6rem;
+        }
+
+        .demo-panel {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 16px;
+            border: 1px dashed rgba(15, 23, 42, 0.2);
+            background: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+
+        .reveal {
+            opacity: 0;
+            animation: fadeUp 0.7s ease forwards;
+        }
+
+        .reveal.delay-1 { animation-delay: 0.1s; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 720px) {
+            .auth-shell { padding-top: 2rem; }
+        }
+    </style>
+</head>
+<body>
+    <main class="container auth-shell">
+        <section class="intro reveal">
+            <p class="text-xs uppercase tracking-[0.35em] text-slate-400">Account Access</p>
+            <h1>Sign in to submit, review, and respond.</h1>
+            <p class="text-slate-600">Accounts keep feedback organized by role. Students submit, teachers review summaries, and STUCO moderates the queue.</p>
+            <ul class="mt-4">
+                <li>Student submissions live in a personal dashboard.</li>
+                <li>Invite codes unlock teacher and admin access.</li>
+                <li>Sessions are stored securely with server cookies.</li>
+            </ul>
+            <div class="demo-panel">
+                <strong>Demo accounts</strong>
+                <p>Student: student@test.com / student123</p>
+                <p>Teacher: harper@test.com / teacher123</p>
+                <p>Admin: chen@test.com / admin123</p>
+            </div>
+        </section>
+
+        <section class="card reveal delay-1">
+            <div class="tabs">
+                <button id="loginTab" class="tab active" type="button">Sign in</button>
+                <button id="registerTab" class="tab" type="button">Create account</button>
+            </div>
+
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label for="loginEmail">Email</label>
+                    <input id="loginEmail" type="email" class="field" placeholder="you@school.org" required>
+                </div>
+                <div>
+                    <label for="loginPassword">Password</label>
+                    <input id="loginPassword" type="password" class="field" placeholder="Minimum 8 characters" required>
+                </div>
+                <button class="btn btn-primary w-full" type="submit">Sign in</button>
+                <div id="loginMessage" class="message hidden"></div>
+            </form>
+
+            <form id="registerForm" class="space-y-4 hidden">
+                <div>
+                    <label for="registerName">Full name</label>
+                    <input id="registerName" type="text" class="field" placeholder="Jordan Lee" required>
+                </div>
+                <div>
+                    <label for="registerEmail">Email</label>
+                    <input id="registerEmail" type="email" class="field" placeholder="you@school.org" required>
+                </div>
+                <div class="row">
+                    <div>
+                        <label for="registerPassword">Password</label>
+                        <input id="registerPassword" type="password" class="field" placeholder="Minimum 8 characters" required>
+                    </div>
+                    <div>
+                        <label for="registerPasswordConfirm">Confirm password</label>
+                        <input id="registerPasswordConfirm" type="password" class="field" placeholder="Repeat password" required>
+                    </div>
+                </div>
+                <div class="row">
+                    <div>
+                        <label for="registerRole">Role</label>
+                        <select id="registerRole" class="field">
+                            <option value="student">Student</option>
+                            <option value="teacher">Teacher</option>
+                            <option value="stuco_admin">STUCO admin</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="inviteCode">Invite code</label>
+                        <input id="inviteCode" type="text" class="field" placeholder="Required for teacher/admin">
+                    </div>
+                </div>
+                <div id="yearLevels" class="role-grid hidden">
+                    <label>Teacher year levels</label>
+                    <label><input type="checkbox" value="Year 6"> Year 6</label>
+                    <label><input type="checkbox" value="Year 7"> Year 7</label>
+                    <label><input type="checkbox" value="Year 8"> Year 8</label>
+                </div>
+                <button class="btn btn-primary w-full" type="submit">Create account</button>
+                <div id="registerMessage" class="message hidden"></div>
+            </form>
+        </section>
+    </main>
+
+    <script>
+        const loginTab = document.getElementById('loginTab');
+        const registerTab = document.getElementById('registerTab');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const loginMessage = document.getElementById('loginMessage');
+        const registerMessage = document.getElementById('registerMessage');
+        const registerRole = document.getElementById('registerRole');
+        const yearLevels = document.getElementById('yearLevels');
+
+        const showMessage = (el, message, type) => {
+            el.textContent = message;
+            el.classList.remove('hidden', 'error', 'success', 'info');
+            el.classList.add(type);
+        };
+
+        const setMode = (mode) => {
+            const isLogin = mode === 'login';
+            loginTab.classList.toggle('active', isLogin);
+            registerTab.classList.toggle('active', !isLogin);
+            loginForm.classList.toggle('hidden', !isLogin);
+            registerForm.classList.toggle('hidden', isLogin);
+            loginMessage.classList.add('hidden');
+            registerMessage.classList.add('hidden');
+        };
+
+        const routeByRole = (user) => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const next = urlParams.get('next');
+            if (next && next.startsWith('/')) {
+                window.location.href = next;
+                return;
+            }
+            if (user.role === 'teacher') {
+                window.location.href = '/teach_frontend.html';
+            } else if (user.role === 'stuco_admin') {
+                window.location.href = '/stuco_admin_dashboard.html';
+            } else {
+                window.location.href = '/feedback';
+            }
+        };
+
+        loginTab.addEventListener('click', () => setMode('login'));
+        registerTab.addEventListener('click', () => setMode('register'));
+
+        registerRole.addEventListener('change', () => {
+            yearLevels.classList.toggle('hidden', registerRole.value !== 'teacher');
+        });
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loginMessage.classList.add('hidden');
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'Login failed');
+                }
+                showMessage(loginMessage, 'Login successful. Redirecting...', 'success');
+                setTimeout(() => routeByRole(data.user), 800);
+            } catch (error) {
+                showMessage(loginMessage, error.message, 'error');
+            }
+        });
+
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            registerMessage.classList.add('hidden');
+            const name = document.getElementById('registerName').value.trim();
+            const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value.trim();
+            const confirm = document.getElementById('registerPasswordConfirm').value.trim();
+            const role = registerRole.value;
+            const inviteCode = document.getElementById('inviteCode').value.trim();
+            const selectedLevels = Array.from(yearLevels.querySelectorAll('input[type="checkbox"]:checked'))
+                .map(input => input.value);
+
+            if (password !== confirm) {
+                showMessage(registerMessage, 'Passwords do not match.', 'error');
+                return;
+            }
+
+            const payload = {
+                name,
+                email,
+                password,
+                role,
+                invite_code: inviteCode,
+                year_levels: selectedLevels
+            };
+
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'Registration failed');
+                }
+                showMessage(registerMessage, 'Account created. Redirecting...', 'success');
+                setTimeout(() => routeByRole(data.user), 900);
+            } catch (error) {
+                showMessage(registerMessage, error.message, 'error');
+            }
+        });
+
+        const init = async () => {
+            try {
+                const response = await fetch('/api/auth/me');
+                if (!response.ok) return;
+                const data = await response.json();
+                if (data.user) {
+                    routeByRole(data.user);
+                }
+            } catch (error) {
+                // No active session.
+            }
+        };
+
+        init();
+    </script>
+</body>
+</html>

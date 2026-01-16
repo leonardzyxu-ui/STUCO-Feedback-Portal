@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STUCO Feedback Portal</title>
+    <link rel="icon" href="/static/logo.png?v=2" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --ink: #1f2933;
+            --muted: #52606d;
+            --accent: #f97316;
+            --accent-strong: #ea580c;
+            --accent-cool: #0ea5a6;
+            --surface: #ffffff;
+            --surface-soft: #f8fafc;
+            --border: rgba(15, 23, 42, 0.08);
+            --shadow: 0 24px 50px rgba(15, 23, 42, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Manrope", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at 15% 20%, #fde68a 0%, transparent 35%),
+                radial-gradient(circle at 85% 0%, #bae6fd 0%, transparent 35%),
+                radial-gradient(circle at 80% 90%, #bbf7d0 0%, transparent 40%),
+                #f7f3ee;
+            min-height: 100vh;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: "Space Grotesk", sans-serif;
+            letter-spacing: -0.02em;
+        }
+
+        .container {
+            width: min(1150px, 92vw);
+            margin: 0 auto;
+        }
+
+        .header {
+            padding: 1.8rem 0 1rem;
+        }
+
+        .header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+        }
+
+        .logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, var(--accent), #fb923c);
+            box-shadow: 0 14px 28px rgba(249, 115, 22, 0.3);
+            display: grid;
+            place-items: center;
+            color: white;
+            font-weight: 700;
+        }
+
+        .nav {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .nav a {
+            text-decoration: none;
+            color: var(--ink);
+            font-weight: 600;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.85rem;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.08);
+            color: var(--ink);
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .btn {
+            border: none;
+            cursor: pointer;
+            border-radius: 16px;
+            padding: 0.85rem 1.4rem;
+            font-weight: 700;
+            font-family: "Space Grotesk", sans-serif;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #fb923c);
+            color: white;
+            box-shadow: 0 16px 28px rgba(249, 115, 22, 0.3);
+        }
+
+        .btn-secondary {
+            background: white;
+            border: 1px solid var(--border);
+            color: var(--ink);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .hero {
+            margin-top: 1.5rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 2.5rem;
+            align-items: center;
+        }
+
+        .hero-card {
+            background: var(--surface);
+            border-radius: 28px;
+            padding: 2.2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .hero-title {
+            font-size: clamp(2.4rem, 4vw, 3.6rem);
+            line-height: 1.05;
+            margin: 0;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 1.8rem;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.4rem;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 1.5rem;
+            box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
+        }
+
+        .section {
+            margin-top: 3rem;
+        }
+
+        .section h2 {
+            margin-bottom: 1rem;
+            font-size: 1.6rem;
+        }
+
+        .timeline {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .timeline-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1rem 1.2rem;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid var(--border);
+        }
+
+        .step-number {
+            width: 34px;
+            height: 34px;
+            border-radius: 12px;
+            background: var(--accent-cool);
+            color: white;
+            font-weight: 700;
+            display: grid;
+            place-items: center;
+            font-family: "Space Grotesk", sans-serif;
+        }
+
+        .footer {
+            padding: 2.5rem 0 3rem;
+            color: var(--muted);
+        }
+
+        .reveal {
+            opacity: 0;
+            animation: fadeUp 0.7s ease forwards;
+        }
+
+        .reveal.delay-1 { animation-delay: 0.1s; }
+        .reveal.delay-2 { animation-delay: 0.2s; }
+        .reveal.delay-3 { animation-delay: 0.3s; }
+
+        .hidden {
+            display: none;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 640px) {
+            .hero-actions { flex-direction: column; }
+            .btn { width: 100%; }
+            .nav { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container header-row">
+            <div class="brand">
+                <div class="logo">S</div>
+                <div>
+                    <p class="text-xs uppercase tracking-[0.25em] text-slate-500">STUCO</p>
+                    <h1 class="text-2xl font-semibold">Feedback Portal</h1>
+                </div>
+            </div>
+            <nav class="nav">
+                <a href="/feedback">Feedback</a>
+                <a href="/student_dashboard">Student Dashboard</a>
+                <a href="/teach_frontend.html">Teacher View</a>
+                <a href="/stuco_admin_dashboard.html">Admin</a>
+                <span id="userBadge" class="pill">Not signed in</span>
+                <a id="navSignIn" href="/auth.html" class="btn btn-secondary">Sign in</a>
+                <button id="navSignOut" class="btn btn-secondary hidden" type="button">Sign out</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="hero reveal">
+            <div>
+                <h2 class="hero-title">A home base for student voice, accountability, and follow through.</h2>
+                <p class="text-lg text-slate-600 mt-4">Separate the signal from the noise. Students submit feedback, AI handles safety checks, and STUCO delivers the next steps.</p>
+                <div class="hero-actions">
+                    <a href="/feedback" class="btn btn-primary">Start feedback</a>
+                    <a href="/auth.html" class="btn btn-secondary">Create account</a>
+                </div>
+            </div>
+            <div class="hero-card reveal delay-1">
+                <h3 class="text-xl font-semibold">Live session</h3>
+                <p class="text-slate-600 mt-3">Jump back into the portal that matches your role.</p>
+                <div class="hero-actions">
+                    <button id="continueBtn" class="btn btn-primary">Continue</button>
+                </div>
+                <p class="text-sm text-slate-500 mt-4">Invite codes unlock teacher and admin access.</p>
+            </div>
+        </section>
+
+        <section class="section reveal delay-1">
+            <h2>Who this serves</h2>
+            <div class="grid-3">
+                <div class="card">
+                    <h3 class="text-lg font-semibold">Students</h3>
+                    <p class="text-slate-600 mt-2">Choose a topic, submit anonymously, and track your submission status in the dashboard.</p>
+                </div>
+                <div class="card">
+                    <h3 class="text-lg font-semibold">Teachers</h3>
+                    <p class="text-slate-600 mt-2">See AI summaries, trends, and request clarifications without breaking anonymity.</p>
+                </div>
+                <div class="card">
+                    <h3 class="text-lg font-semibold">STUCO Admins</h3>
+                    <p class="text-slate-600 mt-2">Moderate sensitive feedback, reply to clarifications, and manage category insights.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="section reveal delay-2">
+            <h2>How the workflow runs</h2>
+            <div class="timeline">
+                <div class="timeline-step">
+                    <div class="step-number">1</div>
+                    <div>
+                        <h4 class="text-base font-semibold">Submit feedback</h4>
+                        <p class="text-slate-600">Select a category and send the story with context.</p>
+                    </div>
+                </div>
+                <div class="timeline-step">
+                    <div class="step-number">2</div>
+                    <div>
+                        <h4 class="text-base font-semibold">Safety pass</h4>
+                        <p class="text-slate-600">AI screens for inappropriate language and routes escalations.</p>
+                    </div>
+                </div>
+                <div class="timeline-step">
+                    <div class="step-number">3</div>
+                    <div>
+                        <h4 class="text-base font-semibold">Actionable delivery</h4>
+                        <p class="text-slate-600">STUCO approves summaries and teachers see trends.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section reveal delay-3">
+            <h2>Built for real follow through</h2>
+            <div class="grid-3">
+                <div class="card">
+                    <h3 class="text-lg font-semibold">Role-based access</h3>
+                    <p class="text-slate-600 mt-2">Student, teacher, and admin dashboards stay separate and focused.</p>
+                </div>
+                <div class="card">
+                    <h3 class="text-lg font-semibold">Background summarization</h3>
+                    <p class="text-slate-600 mt-2">Summaries regenerate when new feedback arrives or is re-approved.</p>
+                </div>
+                <div class="card">
+                    <h3 class="text-lg font-semibold">Clarification workflow</h3>
+                    <p class="text-slate-600 mt-2">Teachers ask for context, STUCO replies anonymously.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>STUCO Feedback Portal. Designed for transparency without sacrificing safety.</p>
+        </div>
+    </footer>
+
+    <script>
+        const userBadge = document.getElementById('userBadge');
+        const navSignIn = document.getElementById('navSignIn');
+        const navSignOut = document.getElementById('navSignOut');
+        const continueBtn = document.getElementById('continueBtn');
+
+        const routeByRole = (role) => {
+            if (role === 'teacher') {
+                window.location.href = '/teach_frontend.html';
+            } else if (role === 'stuco_admin') {
+                window.location.href = '/stuco_admin_dashboard.html';
+            } else {
+                window.location.href = '/feedback';
+            }
+        };
+
+        const updateAuthUI = (user) => {
+            if (!user) {
+                userBadge.textContent = 'Not signed in';
+                navSignIn.classList.remove('hidden');
+                navSignOut.classList.add('hidden');
+                continueBtn.textContent = 'Sign in to continue';
+                continueBtn.onclick = () => window.location.href = '/auth.html';
+                return;
+            }
+            userBadge.textContent = `${user.name || user.email} (${user.role})`;
+            navSignIn.classList.add('hidden');
+            navSignOut.classList.remove('hidden');
+            continueBtn.textContent = `Continue as ${user.name || user.email}`;
+            continueBtn.onclick = () => routeByRole(user.role);
+        };
+
+        const loadAuth = async () => {
+            try {
+                const response = await fetch('/api/auth/me');
+                if (!response.ok) throw new Error('Not logged in');
+                const data = await response.json();
+                updateAuthUI(data.user);
+            } catch (error) {
+                updateAuthUI(null);
+            }
+        };
+
+        navSignOut.addEventListener('click', async () => {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            updateAuthUI(null);
+        });
+
+        loadAuth();
+    </script>
+</body>
+</html>

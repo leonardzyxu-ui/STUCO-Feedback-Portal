@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STUCO Student Portal</title>
+    <title>Student Feedback Studio</title>
     <link rel="icon" href="/static/logo.png?v=2" type="image/png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -50,12 +50,20 @@
         }
 
         .site-header {
-            padding: 2rem 0 1rem;
+            padding: 1.8rem 0 1rem;
         }
 
         .container {
-            width: min(1120px, 92vw);
+            width: min(1140px, 92vw);
             margin: 0 auto;
+        }
+
+        .header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
         }
 
         .brand {
@@ -77,12 +85,18 @@
             font-size: 1.2rem;
         }
 
-        .header-row {
+        .nav-links {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
+            gap: 0.85rem;
             flex-wrap: wrap;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--ink);
+            font-weight: 600;
+            font-size: 0.95rem;
         }
 
         .pill {
@@ -95,6 +109,11 @@
             color: var(--accent-strong);
             font-weight: 600;
             font-size: 0.85rem;
+        }
+
+        .user-pill {
+            background: rgba(15, 23, 42, 0.08);
+            color: var(--ink);
         }
 
         .hero {
@@ -337,6 +356,34 @@
             animation: fadeUp 0.7s ease forwards;
         }
 
+        .feed-list {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .feed-card {
+            background: var(--surface);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            padding: 1.2rem;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.2rem 0.7rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .badge.green { background: #dcfce7; color: #166534; }
+        .badge.red { background: #fee2e2; color: #991b1b; }
+        .badge.gray { background: #e2e8f0; color: #475569; }
+        .badge.blue { background: #dbeafe; color: #1d4ed8; }
+
         @keyframes fadeUp {
             from { opacity: 0; transform: translateY(16px); }
             to { opacity: 1; transform: translateY(0); }
@@ -356,10 +403,15 @@
                     <div class="logo-mark">S</div>
                     <div>
                         <p class="text-sm uppercase tracking-[0.25em] text-slate-400">STUCO</p>
-                        <h1 class="text-2xl font-semibold">Student Feedback Portal</h1>
+                        <h1 class="text-2xl font-semibold">Student Feedback Studio</h1>
                     </div>
                 </div>
-                <div class="pill">Anonymous by default</div>
+                <div class="nav-links">
+                    <a href="/">Home</a>
+                    <a href="/student_dashboard">Dashboard</a>
+                    <span id="userPill" class="pill user-pill">Checking session...</span>
+                    <button id="logoutBtn" class="btn btn-secondary" type="button">Sign out</button>
+                </div>
             </div>
         </header>
 
@@ -367,8 +419,8 @@
             <section id="homeScreen" class="reveal">
                 <div class="hero">
                     <div>
-                        <h2 class="text-4xl sm:text-5xl font-bold leading-tight">Say it straight. We route it safely.</h2>
-                        <p class="mt-4 text-lg text-slate-600">Share what is working and what needs to change. Your feedback is filtered for safety and sent to STUCO for action.</p>
+                        <h2 class="text-4xl sm:text-5xl font-bold leading-tight">Pick a topic. Share the detail. We do the routing.</h2>
+                        <p class="mt-4 text-lg text-slate-600">This is the dedicated feedback hub. Choose a category, fill the form, and STUCO handles the rest.</p>
                         <div class="hero-actions">
                             <button data-category="teacher" class="btn btn-primary nav-btn">Teacher feedback</button>
                             <button data-category="food" class="btn btn-secondary nav-btn">Food and campus</button>
@@ -449,6 +501,11 @@
                         <h4>Help</h4>
                         <p>Reach out for support and care.</p>
                     </button>
+                </div>
+
+                <div class="section-title">Recent submissions</div>
+                <div id="recentFeedback" class="feed-list">
+                    <div class="feed-card">Loading your recent feedback...</div>
                 </div>
             </section>
 
@@ -572,6 +629,9 @@
         // --- CONSTANTS ---
         const API_SUBMIT_URL = "/api/submit_feedback";
         const API_TEACHERS_URL = "/api/teachers";
+        const API_AUTH_ME = "/api/auth/me";
+        const API_AUTH_LOGOUT = "/api/auth/logout";
+        const API_STUDENT_FEEDBACK = "/api/student/feedback";
         const CATEGORY_MAP = {
             'teacher': 'Teacher Suggestions',
             'policy': 'Policy Suggestions',
@@ -607,9 +667,67 @@
         const submissionMessage = document.getElementById('submissionMessageInner');
         const shareNameToggleInner = document.getElementById('shareNameToggleInner');
         const shareNameToggleKnobInner = document.getElementById('shareNameToggleKnobInner');
+        const userPill = document.getElementById('userPill');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const recentFeedback = document.getElementById('recentFeedback');
         let shareName = false;
 
         // --- UTILITIES ---
+        const getMockUser = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('mock_user_id');
+        };
+
+        const getAuthQuery = () => {
+            const mockUser = getMockUser();
+            return mockUser ? `?mock_user_id=${mockUser}` : '';
+        };
+
+        const routeByRole = (role) => {
+            if (role === 'teacher') {
+                window.location.href = '/teach_frontend.html';
+            } else if (role === 'stuco_admin') {
+                window.location.href = '/stuco_admin_dashboard.html';
+            } else {
+                window.location.href = '/feedback';
+            }
+        };
+
+        const escapeHtml = (value) => {
+            if (value === null || value === undefined) return '';
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        };
+
+        const ensureStudentAccess = async () => {
+            const mockUser = getMockUser();
+            if (mockUser) {
+                userPill.textContent = `Mock user #${mockUser}`;
+                logoutBtn.classList.add('hidden');
+                return true;
+            }
+            try {
+                const response = await fetch(API_AUTH_ME);
+                if (!response.ok) throw new Error('Not signed in');
+                const data = await response.json();
+                const user = data.user || {};
+                if (user.role !== 'student') {
+                    routeByRole(user.role);
+                    return false;
+                }
+                userPill.textContent = `${user.name || user.email} (Student)`;
+                return true;
+            } catch (error) {
+                const next = encodeURIComponent('/feedback');
+                window.location.href = `/auth.html?next=${next}`;
+                return false;
+            }
+        };
+
         const showMessage = (message, type) => {
             submissionMessage.textContent = message;
             submissionMessage.classList.remove('hidden', 'alert-success', 'alert-error', 'alert-warning', 'alert-info');
@@ -645,6 +763,47 @@
             }
         };
 
+        const statusBadge = (status) => {
+            if (!status) return 'badge gray';
+            if (status === 'Approved') return 'badge green';
+            if (status === 'Screened - Escalation') return 'badge red';
+            if (status === 'Retracted by Admin') return 'badge gray';
+            return 'badge blue';
+        };
+
+        const renderRecentFeedback = (items) => {
+            if (!items.length) {
+                recentFeedback.innerHTML = '<div class="feed-card">No submissions yet. Your first feedback will show up here.</div>';
+                return;
+            }
+            recentFeedback.innerHTML = items.slice(0, 3).map(item => {
+                const label = CATEGORY_MAP[item.category] || item.category;
+                const teacher = item.teacher_name ? `Teacher: ${escapeHtml(item.teacher_name)}` : 'General feedback';
+                const dateText = item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Recent';
+                return `
+                    <div class="feed-card">
+                        <div class="flex items-center justify-between gap-3 flex-wrap">
+                            <h4 class="text-lg font-semibold">${label}</h4>
+                            <span class="${statusBadge(item.status)}">${item.status}</span>
+                        </div>
+                        <p class="text-sm text-slate-500 mt-2">${teacher} · ${dateText}</p>
+                        ${item.context_detail ? `<p class="text-sm text-slate-600 mt-2">Context: ${escapeHtml(item.context_detail)}</p>` : ''}
+                    </div>
+                `;
+            }).join('');
+        };
+
+        const loadRecentFeedback = async () => {
+            try {
+                const response = await fetch(API_STUDENT_FEEDBACK + getAuthQuery());
+                if (!response.ok) throw new Error('Unable to load feedback history');
+                const items = await response.json();
+                renderRecentFeedback(items);
+            } catch (error) {
+                recentFeedback.innerHTML = '<div class="feed-card">Feedback history is unavailable right now.</div>';
+            }
+        };
+
         // --- FORM STAGE CONTROL LOGIC ---
         const goToForm = (category) => {
             const isTeacher = category === 'teacher';
@@ -677,8 +836,7 @@
             }
             feedbackText.value = '';
 
-            const urlParams = new URLSearchParams(window.location.search);
-            const mockUser = urlParams.get('mock_user_id');
+            const mockUser = getMockUser();
             if (mockUser) {
                 selectedCategoryInput.dataset.mockUser = mockUser;
             }
@@ -790,11 +948,7 @@
                 payload.context_detail = contextField.value.trim();
             }
 
-            let apiUrl = API_SUBMIT_URL;
-            const mockUser = selectedCategoryInput.dataset.mockUser;
-            if (mockUser) {
-                apiUrl += `?mock_user_id=${mockUser}`;
-            }
+            let apiUrl = API_SUBMIT_URL + getAuthQuery();
 
             try {
                 const response = await fetch(apiUrl, {
@@ -819,6 +973,7 @@
                     contextField.value = '';
                     resetStarRatings();
 
+                    loadRecentFeedback();
                     setTimeout(goToHome, 2000);
                 } else {
                     showMessage(`Submission error: ${result.error || response.statusText}.`, 'error');
@@ -833,7 +988,10 @@
         };
 
         // --- INITIALIZATION ---
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            const allowed = await ensureStudentAccess();
+            if (!allowed) return;
+
             YEAR_LEVEL_OPTIONS.forEach(yl => {
                 const option = document.createElement('option');
                 option.value = yl;
@@ -852,10 +1010,19 @@
                 shareName = !shareName;
                 updateShareNameToggle();
             });
-
             teacherRatingsContainer.addEventListener('click', handleStarClick);
 
+            logoutBtn.addEventListener('click', async () => {
+                if (getMockUser()) {
+                    window.location.href = '/';
+                    return;
+                }
+                await fetch(API_AUTH_LOGOUT, { method: 'POST' });
+                window.location.href = '/';
+            });
+
             updateShareNameToggle();
+            loadRecentFeedback();
         });
     </script>
 </body>
