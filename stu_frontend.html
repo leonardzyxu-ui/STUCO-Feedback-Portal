@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STUCO Student Portal</title>
+    <link rel="icon" href="/static/logo.png?v=2" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'stuco-primary-dark': '#0a0e27', 
+                        'stuco-surface': '#1a1f3a', 
+                        'stuco-accent': '#00d4ff', 
+                        'stuco-purple': '#8b5cf6', 
+                        'stuco-pink': '#ec4899', 
+                        'stuco-blue': { '50': '#eff6ff', '600': '#2563eb' } 
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+        background-color: #0a0e27;
+        color: white;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+    .header-container {
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         padding: 2rem 1rem 1rem;
+    }
+    .capsule-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem 2rem;
+        font-size: 1rem;
+        font-weight: 600;
+        color: white;
+        border-radius: 40px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+        transition: all 250ms ease-in-out;
+        transform-origin: center;
+        min-width: 280px;
+        width: auto;
+    }
+    .capsule-btn:hover {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.8), 
+                    0 0 25px rgba(0, 212, 255, 0.4);
+        transform: scale(1.02);
+        z-index: 10;
+    }
+    .capsule-btn svg {
+        width: 1.25rem;
+        height: 1.25rem;
+        margin-right: 0.75rem;
+        flex-shrink: 0;
+    }
+    .ai-gradient {
+        background-image: linear-gradient(to right, #ec4899, #7c3aed);
+        background-size: 200% auto;
+        transition: background-position 0.4s ease-out;
+    }
+    .ai-gradient:hover {
+        background-position: right center;
+    }
+    .default-purple-btn {
+         background-color: #1a1f3a;
+    }
+    .hidden-page {
+        display: none !important;
+    }
+    @keyframes moveGradient {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    .animated-gradient-text {
+        background-image: linear-gradient(
+            90deg,
+            #E5E7EB, 
+            #3B82F6, 
+            #E5E7EB, 
+            #3B82F6 
+        );
+        background-size: 400% 400%;
+        animation: moveGradient 8s ease infinite;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        padding-bottom: 0.2em;
+    }
+    .star-rating {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+    }
+    .star-rating input[type="radio"] {
+        display: none;
+    }
+    .star-rating label {
+        color: #4b5563; /* gray-600 */
+        font-size: 2.5rem;
+        padding: 0 0.15em;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+    .star-rating input[type="radio"]:checked ~ label,
+    .star-rating:not(:checked) > label:hover,
+    .star-rating:not(:checked) > label:hover ~ label {
+        color: #f59e0b; /* amber-500 */
+    }
+</style>
+</head>
+<body class="font-sans">
+    
+    <header class="bg-stuco-primary-dark">
+        <div class="header-container bg-stuco-surface shadow-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-stuco-accent">
+                 <path fill-rule="evenodd" d="M10.788 3.21c.427-1.124 1.79-1.124 2.217 0l.967 2.41a1.5 1.5 0 0 0 1.293.918l2.673.187c1.171.082 1.637 1.55.77 2.37l-1.633 1.62a1.5 1.5 0 0 0-.44 1.488l.38 2.585c.175 1.177-1.026 2.094-2.072 1.42l-2.125-1.424a1.5 1.5 0 0 0-1.696 0l-2.125 1.424c-1.046.674-2.247-.243-2.072-1.42l.38-2.585a1.5 1.5 0 0 0-.44-1.488L3.25 9.073c-.867-.82-.401-2.288.77-2.37l2.673-.187a1.5 1.5 0 0 0 1.293.918l.967-2.41Z" clip-rule="evenodd" />
+             </svg>
+            <h1 class="text-xl sm:text-2xl font-bold text-white pl-2">STUCO Student Portal</h1>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <div id="homeScreen" class="page-transition">
+            <div class="bg-stuco-surface p-10 sm:p-14 rounded-3xl shadow-2xl text-center">
+                
+                <h2 class="text-4xl sm:text-5xl font-extrabold leading-normal sm:leading-tight animated-gradient-text" style="white-space: pre-line;">Feedback.
+Anywhere, Anytime, about Anything.</h2>
+                
+                <p class="text-lg text-stuco-accent font-semibold mb-10 mt-4"> Your voice, amplified by STUCO.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex justify-center">
+                        <button data-category="teacher" class="nav-btn capsule-btn text-white ai-gradient" style="border-radius: 40px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 mr-3 flex-shrink-0">
+                                <path d="M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                                <path fill-rule="evenodd" d="M1.5 12.A4.5 4.5 0 0 0 6 16.5h8a4.5 4.5 0 0 0 4.5-4.5V8.25a.75.75 0 0 0-1.5 0v3.75a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V8.25a.75.75 0 0 0-1.5 0v3.75Z" clip-rule="evenodd" />
+                            </svg>
+                            Teacher Suggestions
+                        </button>
+                    </div>
+                    <div class="flex justify-center">
+                        <button data-category="food" class="nav-btn capsule-btn text-white default-purple-btn" style="border-radius: 40px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 mr-3 flex-shrink-0">
+                                <path d="M16.22 8.303a1.5 1.5 0 0 0-3.22.61l-1.6 4.8a1.5 1.5 0 0 0 2.99.388l1.6-4.8a1.5 1.5 0 0 0 .23-.998Z" />
+                                <path fill-rule="evenodd" d="M3.75 5.25a3 3 0 0 0-3 3v6a3 3 0 0 0 3 3h12.5a3 3 0 0 0 3-3v-6a3 3 0 0 0-3-3H3.75Zm-1.5 3a1.5 1.5 0 0 1 1.5-1.5h12.5a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H3.75a1.5 1.5 0 0 1-1.5-1.5v-6Z" clip-rule="evenodd" />
+                            </svg>
+                            Food Suggestions
+                        </button>
+                    </div>
+                    <div class="flex justify-center">
+                        <button data-category="policy" class="nav-btn capsule-btn text-white default-purple-btn" style="border-radius: 40px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 mr-3 flex-shrink-0">
+                                <path fill-rule="evenodd" d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm-1.023 9.715a.75.75 0 1 0 1.06 1.06L12 11.06l1.963 1.964a.75.75 0 1 0 1.06-1.06L13.06 10l1.964-1.963a.75.75 0 1 0-1.06-1.06L12 8.94 10.037 6.977a.75.75 0 0 0-1.06 1.06L10.94 10 9 11.963Z" clip-rule="evenodd" />
+                            </svg>
+                            Policy Suggestions
+                        </button>
+                    </div>
+                    <div class="flex justify-center">
+                        <button data-category="equipment" class="nav-btn capsule-btn text-white default-purple-btn" style="border-radius: 40px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 mr-3 flex-shrink-0">
+                                <path fill-rule="evenodd" d="M2.5 3A1.5 1.5 0 0 0 1 4.5V15.5A1.5 1.5 0 0 0 2.5 17h15a1.5 1.5 0 0 0 1.5-1.5V4.5A1.5 1.5 0 0 0 17.5 3h-15Zm11.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h1Zm-3 0a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h1Zm-3 0a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h1ZM4 11.25a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H4.75a.75.75 0 0 1-.75-.75Zm0 3a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H4.75a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
+                            </svg>
+                            General Services (GS)
+                        </button>
+                    </div>
+                    <div class="flex justify-center">
+                        <button data-category="school-buses" class="nav-btn capsule-btn text-white default-purple-btn" style="border-radius: 40px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 mr-3 flex-shrink-0">
+                                <path fill-rule="evenodd" d="M12.22 4.032a.75.75 0 0 0-1.061 0l-4.5 4.5a.75.75 0 0 0 1.06 1.061L12 6.31l3.72 3.72a.75.75 0 1 0 1.06-1.061l-4.5-4.5Z" clip-rule="evenodd" />
+                                <path fill-rule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h12.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 10Z" clip-rule="evenodd" />
+                                <path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2a.5.5 0 0 1 .5-.5Z" clip-rule="evenodd" />
+                                <path fill-rule="evenodd" d="M6 12.5a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2a.5.5 0 0 1 .5-.5Z" clip-rule="evenodd" />
+                                <path fill-rule="evenodd" d="M14 12.5a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2a.5.5 0 0 1 .5-.5Z" clip-rule="evenodd" />
+                            </svg>
+                            School Buses
+                        </button>
+                    </div>
+                    <div class="flex justify-center">
+                        <button data-category="other" class="nav-btn capsule-btn text-white default-purple-btn" style="border-radius: 40px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 mr-3 flex-shrink-0">
+                                <path d="M10 3.75a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-1.5 0V4.5a.75.75 0 0 1 .75-.75Z" />
+                                <path fill-rule="evenodd" d="M5.5 5.5A.5.5 0 0 1 6 5h8a.5.5 0 0 1 0 1H6a.5.5 0 0 1-.5-.5ZM7 7a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H7Z" clip-rule="evenodd" />
+                            </svg>
+                            Other Suggestions
+                        </button>
+                    </div>
+                    <div class="md:col-span-2 flex justify-center">
+                        <button data-category="help" class="nav-btn capsule-btn text-white default-purple-btn" style="border-radius: 40px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 mr-3 flex-shrink-0">
+                                <path d="M3 4a2 2 0 0 0-2 2v1.161l8.441 4.221a1.25 1.25 0 0 0 1.118 0L19 7.162V6a2 2 0 0 0-2-2H3Z" />
+                                <path d="m19 8.839-7.77 3.885a2.75 2.75 0 0 1-2.46 0L1 8.839V14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.839Z" />
+                            </svg>
+                            Reaching Out for Help
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div id="formContainer" class="page-transition hidden-page">
+             <div class="bg-stuco-surface backdrop-blur-md p-8 sm:p-10 rounded-3xl shadow-2xl">
+                <button id="backButton" class="mb-4 flex items-center text-stuco-accent hover:text-stuco-purple transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5 mr-1">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                    </svg>
+                    Back to Categories
+                </button>
+
+                <h2 class="text-3xl font-extrabold text-stuco-accent mb-2">
+                    Submission: <span id="currentCategoryTitle" class="text-white"></span>
+                </h2>
+                <p class="text-gray-400 mb-8">Please fill out the form below. Your identity remains anonymous by default.</p>
+
+                <form id="feedbackForm" class="space-y-6">
+                    <input type="hidden" id="selectedCategory" name="selectedCategory">
+                    
+                    <div id="teacherFieldsContainer" class="transition-all duration-500 ease-in-out overflow-hidden max-h-0 opacity-0">
+                        <div class="border border-stuco-purple/50 bg-stuco-surface/50 rounded-2xl p-6 space-y-4">
+                            <p class="font-semibold text-stuco-accent">1. Teacher-Specific Details (Required)</p>
+                            <div>
+                                <label for="yearLevel" class="block text-sm font-medium text-gray-300 mb-1">Select Year Level</label>
+                                <select id="yearLevel" class="w-full border-white/20 bg-black/30 text-white rounded-xl shadow-sm py-2 px-3 text-base focus:border-stuco-accent focus:ring-stuco-accent">
+                                    <option value="" disabled selected>Select Year Level...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="teacherId" class="block text-sm font-medium text-gray-300 mb-1">Select Teacher Name</label>
+                                <select id="teacherId" class="w-full border-white/20 bg-black/30 text-white rounded-xl shadow-sm py-2 px-3 text-base focus:border-stuco-accent focus:ring-stuco-accent" disabled>
+                                    <option value="" disabled selected>Select Teacher...</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="teacherRatingsContainer" class="transition-all duration-500 ease-in-out overflow-hidden max-h-0 opacity-0">
+                        <div class="border border-stuco-purple/50 bg-stuco-surface/50 rounded-2xl p-6 space-y-4">
+                            <p class="font-semibold text-stuco-accent">2. Rate Your Experience (Optional)</p>
+                            
+                            <div class="flex flex-col sm:flex-row justify-between sm:items-center">
+                                <label class="block text-base font-medium text-gray-300 mb-1 sm:mb-0">Clarity</label>
+                                <div class="star-rating" data-rating-for="clarity">
+                                    <input type="radio" id="clarity-5" name="rating-clarity" value="5" /><label for="clarity-5" title="5 stars">&#9733;</label>
+                                    <input type="radio" id="clarity-4" name="rating-clarity" value="4" /><label for="clarity-4" title="4 stars">&#9733;</label>
+                                    <input type="radio" id="clarity-3" name="rating-clarity" value="3" /><label for="clarity-3" title="3 stars">&#9733;</label>
+                                    <input type="radio" id="clarity-2" name="rating-clarity" value="2" /><label for="clarity-2" title="2 stars">&#9733;</label>
+                                    <input type="radio" id="clarity-1" name="rating-clarity" value="1" /><label for="clarity-1" title="1 star">&#9733;</label>
+                                </div>
+                            </div>
+                            
+                            <div class="flex flex-col sm:flex-row justify-between sm:items-center">
+                                <label class="block text-base font-medium text-gray-300 mb-1 sm:mb-0">Pacing</label>
+                                <div class="star-rating" data-rating-for="pacing">
+                                    <input type="radio" id="pacing-5" name="rating-pacing" value="5" /><label for="pacing-5" title="5 stars">&#9733;</label>
+                                    <input type="radio" id="pacing-4" name="rating-pacing" value="4" /><label for="pacing-4" title="4 stars">&#9733;</label>
+                                    <input type="radio" id="pacing-3" name="rating-pacing" value="3" /><label for="pacing-3" title="3 stars">&#9733;</label>
+                                    <input type="radio" id="pacing-2" name="rating-pacing" value="2" /><label for="pacing-2" title="2 stars">&#9733;</label>
+                                    <input type="radio" id="pacing-1" name="rating-pacing" value="1" /><label for="pacing-1" title="1 star">&#9733;</label>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col sm:flex-row justify-between sm:items-center">
+                                <label class="block text-base font-medium text-gray-300 mb-1 sm:mb-0">Resources</label>
+                                <div class="star-rating" data-rating-for="resources">
+                                    <input type="radio" id="resources-5" name="rating-resources" value="5" /><label for="resources-5" title="5 stars">&#9733;</label>
+                                    <input type="radio" id="resources-4" name="rating-resources" value="4" /><label for="resources-4" title="4 stars">&#9733;</label>
+                                    <input type="radio" id="resources-3" name="rating-resources" value="3" /><label for="resources-3" title="3 stars">&#9733;</label>
+                                    <input type="radio" id="resources-2" name="rating-resources" value="2" /><label for="resources-2" title="2 stars">&#9733;</label>
+                                    <input type="radio" id="resources-1" name="rating-resources" value="1" /><label for="resources-1" title="1 star">&#9733;</label>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col sm:flex-row justify-between sm:items-center">
+                                <label class="block text-base font-medium text-gray-300 mb-1 sm:mb-0">Support</label>
+                                <div class="star-rating" data-rating-for="support">
+                                    <input type="radio" id="support-5" name="rating-support" value="5" /><label for="support-5" title="5 stars">&#9733;</label>
+                                    <input type="radio" id="support-4" name="rating-support" value="4" /><label for="support-4" title="4 stars">&#9733;</label>
+                                    <input type="radio" id="support-3" name="rating-support" value="3" /><label for="support-3" title="3 stars">&#9733;</label>
+                                    <input type="radio" id="support-2" name="rating-support" value="2" /><label for="support-2" title="2 stars">&#9733;</label>
+                                    <input type="radio" id="support-1" name="rating-support" value="1" /><label for="support-1" title="1 star">&#9733;</Lal>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="generalFieldsContainer" class="transition-all duration-500 ease-in-out overflow-hidden max-h-0 opacity-0">
+                        <div class="bg-stuco-surface/50 rounded-2xl p-6 space-y-4">
+                            <p class="font-semibold text-white">1. Contextual Details (Optional)</p>
+                            <div>
+                                 <label for="contextField" id="contextLabel" class="block text-sm font-medium text-gray-300 mb-1">Relevant Detail</label>
+                                 <input type="text" id="contextField" class="w-full border-white/20 bg-black/30 text-white rounded-xl shadow-sm py-2 px-3 text-base focus:border-stuco-accent focus:ring-stuco-accent" placeholder="Enter detail (optional)" />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="feedbackText" class="block text-sm font-semibold text-white mb-2">
+                            <span id="feedback-text-label-number">2</span>. Enter Feedback Text (Required)
+                        </label>
+                         <textarea id="feedbackText" rows="6" class="w-full border border-white/20 bg-black/30 text-white rounded-2xl shadow-sm py-3 px-4 focus:border-stuco-accent focus:ring-stuco-accent text-lg" placeholder="Enter your detailed, constructive suggestion here..."></textarea>
+                    </div>
+                    
+                    <div class="bg-stuco-surface/50 border border-stuco-purple/50 p-4 rounded-2xl flex items-center justify-between shadow-sm">
+                        <div class="mr-4">
+                            <strong class="text-base text-white">Anonymity Control</strong>
+                            <p class="text-sm text-gray-400 mt-1">Willing to share your name? Your identity is always shielded unless content is flagged by STUCO as inappropriate.</p>
+                        </div>
+                        <div id="shareNameToggleInner" class="relative inline-flex items-center h-6 rounded-full w-11 cursor-pointer transition-colors bg-gray-600">
+                            <span id="shareNameToggleKnobInner" class="inline-block w-4 h-4 transform bg-white rounded-full transition-transform translate-x-1"></span>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" id="submitBtnInner" class="w-full py-3.5 mt-4 bg-stuco-purple text-white font-semibold text-lg rounded-2xl shadow-lg hover:bg-stuco-purple transition duration-150 ease-in-out transform hover:scale-[1.005] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-stuco-accent" style="box-shadow: 0 4px 6px -1px var(--tw-colors-stuco-purple), 0 0 10px rgba(139, 92, 246, 0.5);">
+                        Submit Feedback Securely
+                    </button>
+                    <div id="submissionMessageInner" class="mt-6 text-center text-white p-3 rounded-2xl font-medium shadow-md hidden" role="alert"></div>
+                </form>
+             </div>
+        </div>
+
+    </main>
+
+    <script>
+        // --- CONSTANTS ---
+        const API_SUBMIT_URL = "/api/submit_feedback";
+        const API_TEACHERS_URL = "/api/teachers";
+        const CATEGORY_MAP = { 
+            'teacher': 'Teacher Suggestions',
+            'policy': 'Policy Suggestions',
+            'food': 'Food Suggestions',
+            'equipment': 'General Services (GS)', 
+            'school-buses': 'School Bus Service',
+            'other': 'Other Suggestions',
+            'help': 'Reaching Out for Help' 
+        };
+        const YEAR_LEVEL_OPTIONS = ["Year 6", "Year 7", "Year 8"];
+        const RATING_CATEGORIES = ['clarity', 'pacing', 'resources', 'support'];
+        let currentRatings = { clarity: null, pacing: null, resources: null, support: null };
+
+        // --- DOM ELEMENTS ---
+        const homeScreen = document.getElementById('homeScreen');
+        const formContainer = document.getElementById('formContainer');
+        const backButton = document.getElementById('backButton');
+        const currentCategoryTitle = document.getElementById('currentCategoryTitle');
+        const selectedCategoryInput = document.getElementById('selectedCategory');
+        const navButtons = document.querySelectorAll('.nav-btn');
+        const form = document.getElementById('feedbackForm');
+        const submitBtn = document.getElementById('submitBtnInner');
+        const yearLevelSelect = document.getElementById('yearLevel');
+        const teacherSelect = document.getElementById('teacherId');
+        const feedbackText = document.getElementById('feedbackText');
+        const contextField = document.getElementById('contextField');
+        const teacherFieldsContainer = formContainer.querySelector('#teacherFieldsContainer');
+        const generalFieldsContainer = formContainer.querySelector('#generalFieldsContainer');
+        const teacherRatingsContainer = formContainer.querySelector('#teacherRatingsContainer');
+        const feedbackTextLabelNumber = document.getElementById('feedback-text-label-number');
+        const starRatingGroups = document.querySelectorAll('.star-rating');
+        const contextLabel = document.getElementById('contextLabel');
+        const submissionMessage = document.getElementById('submissionMessageInner');
+        const shareNameToggleInner = document.getElementById('shareNameToggleInner');
+        const shareNameToggleKnobInner = document.getElementById('shareNameToggleKnobInner');
+        let shareName = false;
+
+        // --- UTILITIES ---
+        const showMessage = (message, type) => {
+            submissionMessage.textContent = message;
+            submissionMessage.classList.remove('hidden', 'bg-green-600', 'bg-red-600', 'bg-yellow-600', 'bg-stuco-blue-600', 'text-white');
+            if (type === 'success') {
+                 submissionMessage.classList.add('bg-green-600', 'text-white');
+            } else if (type === 'error') {
+                 submissionMessage.classList.add('bg-red-600', 'text-white');
+            } else if (type === 'warning') {
+                submissionMessage.classList.add('bg-yellow-600', 'text-white');
+            } else if (type === 'info') {
+                 submissionMessage.classList.add('bg-stuco-blue-600', 'text-white');
+            }
+            submissionMessage.classList.remove('hidden');
+        };
+
+        const updateShareNameToggle = () => {
+            shareNameToggleInner.classList.toggle('bg-stuco-purple', shareName);
+            shareNameToggleInner.classList.toggle('bg-gray-600', !shareName);
+            shareNameToggleKnobInner.classList.toggle('translate-x-6', shareName);
+            shareNameToggleKnobInner.classList.toggle('translate-x-1', !shareName);
+        };
+
+        const getContextLabelText = (category) => {
+            switch (category) {
+                case 'policy': return "Related Policy/Department (e.g., 'Uniform Policy', Academic Office)";
+                case 'food': return "Dining Hall Area or Specific Item (e.g., 'Upper School Hot Lunch')";
+                case 'equipment': return "Equipment/Location (e.g., 'Library Computers', Science Lab Goggles)";
+                case 'school-buses': return "Route/Bus Number or Time/Location (e.g., 'Route 4: Dalian Rd. Morning')";
+                default: return "Relevant Detail (Optional)";
+            }
+        };
+        
+        // --- FORM STAGE CONTROL LOGIC ---
+        const goToForm = (category) => {
+            const isTeacher = category === 'teacher';
+            const isGeneralContext = ['policy', 'food', 'equipment', 'other', 'school-buses', 'help'].includes(category);
+            
+            homeScreen.classList.add('hidden-page');
+            formContainer.classList.remove('hidden-page');
+            
+            currentCategoryTitle.textContent = CATEGORY_MAP[category] || 'General Submission';
+            selectedCategoryInput.value = category;
+            
+            teacherFieldsContainer.classList.toggle('max-h-96', isTeacher);
+            teacherFieldsContainer.classList.toggle('opacity-100', isTeacher);
+            teacherFieldsContainer.classList.toggle('max-h-0', !isTeacher);
+            teacherFieldsContainer.classList.toggle('opacity-0', !isTeacher);
+            yearLevelSelect.required = isTeacher;
+            teacherSelect.required = isTeacher;
+
+            teacherRatingsContainer.classList.toggle('max-h-[500px]', isTeacher); 
+            teacherRatingsContainer.classList.toggle('opacity-100', isTeacher);
+            teacherRatingsContainer.classList.toggle('max-h-0', !isTeacher);
+            teacherRatingsContainer.classList.toggle('opacity-0', !isTeacher);
+
+            generalFieldsContainer.classList.toggle('max-h-96', !isTeacher && isGeneralContext);
+            generalFieldsContainer.classList.toggle('opacity-100', !isTeacher && isGeneralContext);
+            generalFieldsContainer.classList.toggle('max-h-0', isTeacher || !isGeneralContext);
+            generalFieldsContainer.classList.toggle('opacity-0', isTeacher || !isGeneralContext);
+            contextLabel.textContent = getContextLabelText(category);
+            
+            feedbackTextLabelNumber.textContent = isTeacher ? '3' : '2';
+            
+            if (!isTeacher) {
+                yearLevelSelect.value = '';
+                teacherSelect.value = '';
+                teacherSelect.innerHTML = '<option value="" disabled selected>Select Teacher...</option>';
+                teacherSelect.disabled = true;
+                resetStarRatings(); 
+            } else {
+                 contextField.value = ''; 
+            }
+            feedbackText.value = '';
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const mockUser = urlParams.get('mock_user_id');
+            if(mockUser) {
+                selectedCategoryInput.dataset.mockUser = mockUser;
+            }
+            formContainer.scrollTop = 0; 
+        };
+        
+        const goToHome = () => {
+             formContainer.classList.add('hidden-page');
+             homeScreen.classList.remove('hidden-page');
+             submissionMessage.classList.add('hidden');
+             form.reset();
+             resetStarRatings();
+        };
+
+        // --- DYNAMIC FORM FIELD LOGIC ---
+        const populateTeachers = async () => {
+            const year = yearLevelSelect.value;
+            teacherSelect.innerHTML = '<option value="" disabled selected>Loading...</option>';
+            teacherSelect.disabled = true;
+            if (!year) {
+                teacherSelect.innerHTML = '<option value="" disabled selected>Select Teacher...</option>';
+                return;
+            }
+            try {
+                const response = await fetch(`${API_TEACHERS_URL}?year_level=${year}`);
+                if (!response.ok) throw new Error('Failed to fetch teachers');
+                const filtered = await response.json();
+                teacherSelect.innerHTML = '<option value="" disabled selected>Select Teacher...</option>';
+                if (filtered.length === 0) {
+                     teacherSelect.innerHTML = '<option value="" disabled>No teachers found for this year</option>';
+                     return;
+                }
+                filtered.forEach(teacher => {
+                    const option = document.createElement('option');
+                    option.value = teacher.id;
+                    option.textContent = teacher.name;
+                    teacherSelect.appendChild(option);
+                });
+                teacherSelect.disabled = false;
+            } catch (error) {
+                console.error("Error fetching teachers:", error);
+                teacherSelect.innerHTML = '<option value="" disabled>Error loading teachers</option>';
+            }
+        };
+
+        // --- V2.0 Star Rating Logic ---
+        function handleStarClick(e) {
+            if (e.target.name && e.target.name.startsWith('rating-')) {
+                const category = e.target.name.replace('rating-', '');
+                const value = parseInt(e.target.value, 10);
+                
+                if (currentRatings[category] === value) {
+                    e.target.checked = false;
+                    currentRatings[category] = null;
+                } else {
+                    currentRatings[category] = value;
+                }
+            }
+        }
+        
+        function resetStarRatings() {
+            starRatingGroups.forEach(group => {
+                const radios = group.querySelectorAll('input[type="radio"]');
+                radios.forEach(radio => radio.checked = false);
+            });
+            currentRatings = { clarity: null, pacing: null, resources: null, support: null };
+        }
+
+        // --- FORM SUBMISSION HANDLER ---
+        const handleFormSubmit = async (e) => {
+            e.preventDefault();
+            submissionMessage.classList.add('hidden');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+
+            const category = selectedCategoryInput.value;
+            if (!category || !feedbackText.value) {
+                showMessage('Please select a category and enter your feedback.', 'error');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Feedback Securely';
+                return;
+            }
+
+            const payload = {
+                category: category,
+                feedback_text: feedbackText.value,
+                willing_to_share_name: shareName
+            };
+            
+            if (category === 'teacher') {
+                if (!yearLevelSelect.value || !teacherSelect.value) {
+                    showMessage('Please select a year level and teacher.', 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Feedback Securely';
+                    return;
+                }
+                payload.teacher_id = parseInt(teacherSelect.value);
+                payload.year_level = yearLevelSelect.value;
+
+                if (currentRatings.clarity) payload.rating_clarity = currentRatings.clarity;
+                if (currentRatings.pacing) payload.rating_pacing = currentRatings.pacing;
+                if (currentRatings.resources) payload.rating_resources = currentRatings.resources;
+                if (currentRatings.support) payload.rating_support = currentRatings.support;
+
+            } else {
+                payload.year_level = yearLevelSelect.value || 'N/A';
+            }
+            
+            if (contextField.value.trim()) {
+                 payload.context_detail = contextField.value.trim(); 
+            }
+
+            let apiUrl = API_SUBMIT_URL;
+            const mockUser = selectedCategoryInput.dataset.mockUser;
+            if (mockUser) {
+                apiUrl += `?mock_user_id=${mockUser}`;
+            }
+ 
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if (response.ok) {
+                    let successMessage = `Success! Feedback ID ${result.id} submitted.`;
+                    if (result.status === 'Screened - Escalation') {
+                         successMessage = `WARNING: Your submission (ID: ${result.id}) was flagged by AI as inappropriate. It has been submitted directly to the STUCO Safeguarding Queue.`;
+                         showMessage(successMessage, 'warning');
+                    } else {
+                         showMessage(successMessage, 'success');
+                    }
+                    
+                    form.reset();
+                    shareName = false;
+                    updateShareNameToggle();
+                    contextField.value = '';
+                    resetStarRatings();
+                    
+                    setTimeout(goToHome, 2500); 
+                } else {
+                    showMessage(`Submission Error: ${result.error || response.statusText}.`, 'error');
+                }
+            } catch (error) {
+                console.error('Network Error during Submission:', error);
+                showMessage('Network Error: Could not connect to the server.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Feedback Securely';
+            }
+        };
+        
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            YEAR_LEVEL_OPTIONS.forEach(yl => {
+                const option = document.createElement('option');
+                option.value = yl;
+                option.textContent = yl;
+                yearLevelSelect.appendChild(option);
+            });
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    goToForm(button.dataset.category);
+                });
+            });
+            backButton.addEventListener('click', goToHome);
+            yearLevelSelect.addEventListener('change', populateTeachers);
+            form.addEventListener('submit', handleFormSubmit);
+            shareNameToggleInner.addEventListener('click', () => {
+                shareName = !shareName;
+                updateShareNameToggle();
+            });
+            
+            teacherRatingsContainer.addEventListener('click', handleStarClick);
+            
+            updateShareNameToggle(); 
+        });
+    </script>
+</body>
+</html>

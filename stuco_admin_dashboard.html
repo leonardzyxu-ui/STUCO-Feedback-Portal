@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STUCO Admin Dashboard</title>
+    <link rel="icon" href="/static/logo.png?v=2" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'stuco-blue': { '50': '#eff6ff', '100': '#dbeafe', '200': '#bfdbfe', '300': '#93c5fd', '400': '#60a5fa', '500': '#3b82f6', '600': '#2563eb', '700': '#1d4ed8', '800': '#1e40af', '900': '#1e3a8a', '950': '#172554' },
+                        'stuco-dark': '#111827',
+                        'stuco-red': { '50': '#fef2f2', '100': '#fee2e2', '200': '#fecaca', '300': '#fca5a5', '400': '#f87171', '500': '#ef4444', '600': '#dc2626', '700': '#b91c1c', '800': '#991b1b', '900': '#7f1d1d', '950': '#450a0a' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f0f5ff; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        .toggle-btn.active { @apply bg-stuco-blue-600 text-white shadow-inner; }
+        .toggle-btn { @apply px-3 py-1 text-sm font-semibold text-gray-600 bg-gray-200 rounded-lg transition; }
+         
+        .summary-bullets ul {
+            list-style-type: disc;
+            padding-left: 1.5rem;
+            color: #374151;
+            font-size: 0.875rem; 
+            line-height: 1.6;
+        }
+        .summary-bullets li {
+            margin-bottom: 0.25rem;
+        }
+        
+        .tab-btn {
+            @apply px-4 py-2 text-lg font-semibold text-gray-500 border-b-4 border-transparent transition-all;
+        }
+        .tab-btn.active {
+            @apply text-stuco-blue-600 border-stuco-blue-600;
+        }
+        .tab-btn:hover {
+            @apply text-stuco-blue-500;
+        }
+        .tab-content {
+            @apply hidden;
+        }
+        .tab-content.active {
+            @apply block;
+        }
+    </style>
+</head>
+<body class="font-sans">
+    <main class="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 my-10">
+        <header class="mb-8">
+             <h1 class="text-3xl font-extrabold text-stuco-red-700">STUCO Administrative Portal</h1>
+             <p class="text-gray-600 mt-1">Review feedback, manage safeguarding, and analyze school-wide trends.</p>
+        </header>
+        
+        <div class="mb-6 border-b border-gray-300">
+            <nav class="flex -mb-px space-x-4" aria-label="Tabs">
+                <button id="tab-btn-moderation" class="tab-btn active" data-tab="moderation">Moderation & Safeguarding</button>
+                <button id="tab-btn-analytics" class="tab-btn" data-tab="analytics">General Analytics</button>
+            </nav>
+        </div>
+
+        <div id="tab-content-moderation" class="tab-content active">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white/90 backdrop-blur-md p-6 rounded-3xl shadow-xl border border-gray-200/80">
+                    <h3 class="text-lg font-bold text-gray-800">Moderation Stats</h3>
+                    <div class="space-y-2 text-sm mt-3">
+                        <div class="flex justify-between"><span class="font-medium text-gray-600">Pending Escalations:</span><span id="pendingReview" class="font-bold text-stuco-red-600">--</span></div>
+                        <div class="flex justify-between"><span class="font-medium text-gray-600">Pending Clarifications:</span><span id="pendingClarifications" class="font-bold text-stuco-blue-600">--</span></div>
+                    </div>
+                </div>
+            
+                <div class="bg-white/90 backdrop-blur-md p-6 rounded-3xl shadow-xl border border-gray-200/80">
+                    <h3 class="text-lg font-bold text-gray-800">Data Management</h3>
+                    <p class="text-sm text-gray-500 mt-1">Wipe all data and reset to factory defaults.</p>
+                    <button id="resetDatabaseBtn" class="w-full py-2.5 mt-4 bg-stuco-red-600 text-white font-semibold rounded-2xl shadow-md hover:bg-stuco-red-700 transition">
+                        Reset Database
+                    </button>
+                </div>
+            </div>
+            
+            <div class="bg-white/90 backdrop-blur-md p-6 rounded-3xl shadow-xl border border-stuco-blue-200/80 mb-8">
+                <div class="flex items-center justify-between mb-4 border-b border-stuco-blue-200 pb-3">
+                    <h2 class="text-2xl font-bold text-stuco-dark">Teacher Clarification Queue</h2>
+                    <div class="flex space-x-2">
+                        <button id="clarificationPendingBtn" class="toggle-btn active" data-status="pending">Unreplied</button>
+                        <button id="clarificationResolvedBtn" class="toggle-btn" data-status="resolved">Replied</button>
+                    </div>
+                </div>
+                <div id="clarificationQueueContainer" class="space-y-4 max-h-[600px] overflow-y-auto">
+                    </div>
+            </div>
+
+            <div class="bg-white/90 backdrop-blur-md p-6 rounded-3xl shadow-xl border border-gray-200/80">
+                <h2 class="text-2xl font-bold text-stuco-dark mb-4 border-b border-gray-200 pb-3">Live Feedback Queue</h2>
+                <div class="flex flex-wrap items-center gap-4 mb-4">
+                    <div class="flex items-center gap-2">
+                        <label for="statusFilter" class="text-sm font-medium text-gray-700">Status:</label>
+                        <select id="statusFilter" class="border-gray-300 rounded-xl text-sm focus:ring-stuco-blue-500"></select>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label for="categoryFilter" class="text-sm font-medium text-gray-700">Category:</label>
+                        <select id="categoryFilter" class="border-gray-300 rounded-xl text-sm focus:ring-stuco-blue-500"></select>
+                    </div>
+                </div>
+                <div id="queueContainer" class="space-y-4"></div>
+            </div>
+        </div>
+
+        <div id="tab-content-analytics" class="tab-content">
+             <div class="bg-white/90 backdrop-blur-md p-6 rounded-3xl shadow-xl border border-gray-200/80">
+                <h2 class="text-2xl font-bold text-stuco-dark mb-4 border-b border-gray-200 pb-3">General Category Summaries</h2>
+                <p class="text-sm text-gray-600 mb-6">This page shows AI-generated holistic summaries for all non-teacher feedback categories. Summaries are updated in the background as new feedback is received.</p>
+                
+                <div id="analytics-loading" class="text-center p-10">
+                    <p class="text-gray-600 font-medium">Loading AI Summaries...</p>
+                </div>
+
+                <div id="analytics-container" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    </div>
+            </div>
+        </div>
+
+    </main>
+    
+    <div id="summary-modal" class="fixed inset-0 bg-black bg-opacity-70 z-50 flex justify-center items-center p-4 hidden">
+       <div class="bg-white p-8 rounded-3xl w-full max-w-2xl shadow-2xl">
+            <h3 class="text-2xl font-bold mb-4">AI Summary Review for <span id="modalTeacherName" class="text-stuco-blue-600"></span></h3>
+            <p>This modal is no longer in use.</p>
+        </div>
+    </div>
+
+    <script>
+        // --- CONSTANTS ---
+        const API_MOD_QUEUE = "/api/admin/moderation/queue"; 
+        const API_APPROVE_BASE = "/api/admin/feedback/"; 
+        const API_RETRACT_BASE = "/api/admin/feedback/"; 
+        const API_DELETE_BASE = "/api/admin/feedback/"; 
+        const API_CLARIFICATIONS_BASE = "/api/admin/clarification_requests"; 
+        const API_RESET_DB = "/api/admin/reset_database";
+        const API_CATEGORY_SUMMARIES = "/api/admin/category_summaries";
+        const API_CLARIFICATION_REPLY_BASE = "/api/admin/clarification/"; // e.g., /api/admin/clarification/1/reply
+
+        const TEACHERS_LIST = [
+          { id: 1, name: "Mr. Harper" }, { id: 2, name: "Ms. Williams" },
+          { id: 3, name: "Ms. Chen (Admin)" },
+        ];
+        const ALL_CATEGORIES = ['all', 'teacher', 'policy', 'food', 'equipment', 'school-buses', 'other', 'help'];
+        const ALL_STATUSES = ['Approved', 'Retracted by Admin', 'Screened - Escalation', 'New'];
+
+        // --- DOM Elements Cache ---
+        const DOM = Object.fromEntries(
+            ['queueContainer', 'clarificationQueueContainer', 'statusFilter', 'categoryFilter', 'teacherSelect', 'pendingReview', 'pendingClarifications', 'clarificationPendingBtn', 'clarificationResolvedBtn', 'resetDatabaseBtn', 'tab-btn-moderation', 'tab-btn-analytics', 'tab-content-moderation', 'tab-content-analytics', 'analytics-container', 'analytics-loading']
+            .map(id => [id, document.getElementById(id)]) 
+        );
+        
+        // --- RENDER FUNCTIONS ---
+        const renderQueueItem = (item) => {
+            const isFlagged = item.is_inappropriate;
+            const isRetracted = item.status === 'Retracted by Admin';
+            let cardClass = 'border-l-4 border-stuco-blue-500';
+            if (isFlagged) cardClass = 'border-l-8 border-stuco-red-500 bg-red-50/80';
+            if (isRetracted) cardClass = 'border-l-4 border-gray-400 bg-gray-100 opacity-70';
+            const teacherContext = item.category === 'teacher' ? `For: ${item.teacher_name}` : `Context: ${item.category}`;
+            let actionButton = '';
+            if (item.status === 'Approved') {
+                actionButton = `<button data-id="${item.id}" data-action="retract" class="feedback-action-btn bg-stuco-red-600 hover:bg-stuco-red-700 text-white px-3 py-1.5 rounded-xl font-medium">Retract (Take Down)</button>`;
+            } else if (item.status === 'Retracted by Admin') {
+                actionButton = `<button data-id="${item.id}" data-action="approve" class="feedback-action-btn bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-xl font-medium">Re-Approve</button>`;
+            } else if (item.status === 'Screened - Escalation') {
+                 actionButton = `<button data-id="${item.id}" data-action="delete" class="feedback-action-btn bg-stuco-red-800 hover:bg-stuco-red-900 text-white px-3 py-1.5 rounded-xl font-medium">Delete Permanently</button>`;
+            }
+            return `
+                <div id="item-${item.id}" class="bg-white p-5 rounded-2xl shadow-md ${cardClass}">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <span class="text-sm font-semibold uppercase ${isFlagged ? 'text-red-600' : 'text-stuco-blue-600'}">${item.category} (ID: ${item.id})</span>
+                            <p class="text-lg font-bold">${teacherContext}</p>
+                        </div>
+                        <span class="text-sm font-semibold text-gray-700 px-2 py-1 ${isFlagged ? 'bg-red-100' : (isRetracted ? 'bg-gray-300' : 'bg-blue-100')} rounded-md">${item.status}</span>
+                    </div>
+                    <h4 class="text-sm font-semibold text-gray-500 mt-4">Original Feedback:</h4>
+                    <p class="text-gray-700 bg-gray-100 p-4 rounded-xl border whitespace-pre-wrap mb-4">${item.feedback_text}</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 summary-bullets">
+                        <div class="bg-green-50/80 p-3 rounded-lg border-l-4 border-green-400">
+                            <h5 class="text-sm font-semibold text-green-800">Latest Positive Summary</h5>
+                            <div class="text-gray-700 text-sm whitespace-pre-wrap">${item.summary_positive || 'N/A'}</div>
+                        </div>
+                        <div class="bg-yellow-50/80 p-3 rounded-lg border-l-4 border-yellow-400">
+                            <h5 class="text-sm font-semibold text-yellow-800">Latest Actionable Summary</h5>
+                            <div class="text-gray-700 text-sm whitespace-pre-wrap">${item.summary_actionable || 'N/A'}</div>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div class="flex flex-wrap gap-2 text-xs font-semibold">
+                            <span class="px-2 py-1 rounded-full ${item.toxicity_score > 0.7 ? 'bg-red-200 text-red-800' : 'bg-green-200 text-green-800'}">Tox: ${item.toxicity_score.toFixed(2)}</span>
+                        </div>
+                        <div class="flex gap-2 text-sm">
+                            ${actionButton}
+                        </div>
+                    </div>
+                </div>`;
+        };
+        
+        const renderClarificationItem = (req, isPending) => {
+            return `
+            <div class="bg-white p-4 rounded-xl shadow-md border-l-4 ${isPending ? 'border-yellow-500' : 'border-gray-400 opacity-80'}">
+                <div class="flex justify-between items-center mb-2">
+                    <p class="font-semibold">${isPending ? 'Request from:' : 'Replied to:'} ${req.teacher_name}</p>
+                    <span class="text-xs text-gray-500">${new Date(req.requested_on).toLocaleDateString()}</span>
+                </div>
+                <p class="text-sm font-semibold text-gray-500">Teacher's Question:</p>
+                <p class="text-sm bg-yellow-50 p-3 rounded-lg mb-3 whitespace-pre-wrap">${req.question_text}</p>
+                
+                ${isPending ? `
+                <div>
+                    <label for="reply-text-${req.id}" class="text-sm font-semibold text-gray-500">Your Reply:</label>
+                    <textarea id="reply-text-${req.id}" rows="3" class="w-full border-gray-300 rounded-xl p-3 mt-1 focus:ring-stuco-blue-500 focus:border-stuco-blue-500" placeholder="Write your anonymous reply here..."></textarea>
+                    <div class="flex justify-end mt-2">
+                        <button data-id="${req.id}" class="clarification-reply-btn bg-stuco-blue-600 text-white px-3 py-1.5 text-sm rounded-lg font-medium hover:bg-stuco-blue-700">
+                            Send Reply & Resolve
+                        </button>
+                    </div>
+                </div>
+                ` : `
+                <div>
+                    <p class="text-sm font-semibold text-gray-500">Your Reply:</p>
+                    <p class="text-sm bg-blue-50 p-3 rounded-lg whitespace-pre-wrap">${req.admin_reply}</p>
+                </div>
+                `}
+            </div>`;
+        }
+
+        const renderCategorySummaryItem = (item) => {
+            return `
+            <div class="bg-white p-5 rounded-2xl shadow-md border-l-4 border-stuco-blue-500">
+                <h3 class="text-xl font-bold text-stuco-blue-700 capitalize">${item.category_name}</h3>
+                <p class="text-xs text-gray-500 mb-4">Last Updated: ${new Date(item.last_updated).toLocaleString()}</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 summary-bullets">
+                    <div class="bg-green-50/80 p-3 rounded-lg border-l-4 border-green-400">
+                        <h5 class="text-sm font-semibold text-green-800">Positive Highlights</h5>
+                        <div class="text-gray-700 text-sm whitespace-pre-wrap">${item.positive_summary || 'N/A'}</div>
+                    </div>
+                    <div class="bg-yellow-50/80 p-3 rounded-lg border-l-4 border-yellow-400">
+                        <h5 class="text-sm font-semibold text-yellow-800">Actionable Growth</h5>
+                        <div class="text-gray-700 text-sm whitespace-pre-wrap">${item.actionable_summary || 'N/A'}</div>
+                    </div>
+                </div>
+            </div>`;
+        };
+
+        // --- ASYNC & STATE LOGIC ---
+        function getAuthQuery() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const mockUser = urlParams.get('mock_user_id');
+            return mockUser ? `?mock_user_id=${mockUser}` : '';
+        }
+
+        async function fetchModerationQueue() {
+            const status = DOM.statusFilter.value;
+            const category = DOM.categoryFilter.value;
+            const url = new URL(window.location.origin + API_MOD_QUEUE);
+            url.searchParams.append('status', status);
+            url.searchParams.append('category', category);
+            if (getAuthQuery()) url.search = url.search + '&' + getAuthQuery().substring(1);
+            
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                const items = await response.json();
+                
+                const escalationItems = items.filter(i => i.status === 'Screened - Escalation');
+                if (DOM.pendingReview) DOM.pendingReview.textContent = escalationItems.length;
+
+                DOM.queueContainer.innerHTML = items.length > 0
+                    ? items.map(renderQueueItem).join('')
+                    : '<div class="text-center p-10 text-gray-500">Queue is clear for this filter combination.</div>';
+            } catch (error) {
+                console.error("Error fetching moderation queue:", error);
+                DOM.queueContainer.innerHTML = `<div class="text-red-500 p-4 text-center"><b>Error fetching data.</b><br>${error.message}.<br>Ensure server is running.</div>`;
+            }
+        }
+        
+        async function fetchClarificationQueue(status = 'pending') {
+             DOM.clarificationPendingBtn.classList.toggle('active', status === 'pending');
+             DOM.clarificationResolvedBtn.classList.toggle('active', status === 'resolved');
+             
+             const url = new URL(window.location.origin + API_CLARIFICATIONS_BASE);
+             url.searchParams.append('status', status);
+             if (getAuthQuery()) url.search = url.search + '&' + getAuthQuery().substring(1);
+             
+             try {
+                DOM.clarificationQueueContainer.innerHTML = `<p class="text-gray-500 text-sm p-4 text-center">Loading...</p>`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (DOM.pendingClarifications) {
+                    if (status === 'pending') DOM.pendingClarifications.textContent = data.length;
+                }
+                DOM.clarificationQueueContainer.innerHTML = data.length > 0 
+                    ? data.map(req => renderClarificationItem(req, status==='pending')).join('')
+                    : `<div class="text-center p-4 text-gray-500">No ${status} requests in this queue.</div>`;
+            } catch (error) {
+                console.error("Error fetching clarifications:", error);
+                DOM.clarificationQueueContainer.innerHTML = '<div class="text-center p-4 text-red-500">API error loading clarifications.</div>';
+            }
+        }
+        
+        async function fetchCategorySummaries() {
+            DOM.analyticsLoading.classList.remove('hidden');
+            DOM.analyticsContainer.classList.add('hidden');
+            
+            const url = window.location.origin + API_CATEGORY_SUMMARIES + getAuthQuery();
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                const items = await response.json();
+
+                DOM.analyticsContainer.innerHTML = items.length > 0
+                    ? items.map(renderCategorySummaryItem).join('')
+                    : '<div class="text-center p-10 text-gray-500">No category summaries have been generated yet.</div>';
+
+            } catch (error) {
+                 console.error("Error fetching category summaries:", error);
+                 DOM.analyticsContainer.innerHTML = `<div class="text-red-500 p-4 text-center"><b>Error fetching data.</b><br>${error.message}.</div>`;
+            } finally {
+                DOM.analyticsLoading.classList.add('hidden');
+                DOM.analyticsContainer.classList.remove('hidden');
+            }
+        }
+        
+        async function handleFeedbackAction(e) {
+            const target = e.target.closest('.feedback-action-btn');
+            if (!target || target.disabled) return;
+            
+            const id = target.dataset.id;
+            const action = target.dataset.action;
+            
+            if (action === 'delete') {
+                if (!window.confirm("DANGER: Are you sure you want to PERMANENTLY DELETE this feedback? This cannot be undone.")) {
+                    return; 
+                }
+            }
+            
+            target.textContent = '...'; 
+            target.disabled = true;
+            
+            let url;
+            const mockUserQuery = getAuthQuery();
+            
+            if (action === 'retract') url = `${API_RETRACT_BASE}${id}/retract${mockUserQuery}`;
+            else if (action === 'approve') url = `${API_APPROVE_BASE}${id}/approve${mockUserQuery}`;
+            else if (action === 'delete') url = `${API_DELETE_BASE}${id}/delete${mockUserQuery}`; 
+            
+            try {
+                const method = (action === 'delete') ? 'DELETE' : 'PUT';
+                const response = await fetch(url, { method: method });
+                if (response.ok) {
+                    await fetchModerationQueue(); 
+                } else {
+                    const result = await response.json();
+                    throw new Error(result.error || "Unknown server error");
+                }
+            } catch (error) {
+                alert(`Action failed: ${error.message}`);
+                if (action === 'delete') target.textContent = 'Delete Permanently';
+                else if (action === 'retract') target.textContent = 'Retract (Take Down)';
+                else if (action === 'approve') target.textContent = 'Re-Approve';
+                target.disabled = false;
+            }
+        }
+        
+        async function handleClarificationReply(e) {
+            const target = e.target.closest('.clarification-reply-btn');
+            if (!target || target.disabled) return;
+            
+            const id = target.dataset.id;
+            const replyTextarea = document.getElementById(`reply-text-${id}`);
+            const reply_text = replyTextarea.value.trim();
+            
+            if (reply_text.length < 5) {
+                alert("Please provide a meaningful reply (min 5 characters).");
+                return;
+            }
+            
+            target.textContent = '...'; 
+            target.disabled = true;
+            replyTextarea.disabled = true;
+            
+            const url = `${API_CLARIFICATION_REPLY_BASE}${id}/reply${getAuthQuery()}`;
+            
+            try {
+                const response = await fetch(url, { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reply_text })
+                });
+                
+                if (response.ok) {
+                    await fetchClarificationQueue('pending'); 
+                } else {
+                    const result = await response.json();
+                    throw new Error(result.error || "Unknown server error");
+                }
+            } catch (error) {
+                alert(`Action failed: ${error.message}`);
+                target.textContent = 'Send Reply & Resolve';
+                target.disabled = false;
+                replyTextarea.disabled = false;
+            }
+        }
+        
+        async function handleResetDatabase() {
+            if (!window.confirm("DANGER: Are you sure you want to reset the entire database? All feedback and data will be permanently deleted.")) {
+                return;
+            }
+            const confirmationText = window.prompt("To confirm, please type 'DELETE' (all caps) in the box below.");
+            if (confirmationText !== "DELETE") {
+                alert("Action cancelled. Confirmation text did not match.");
+                return;
+            }
+            try {
+                const response = await fetch(API_RESET_DB + getAuthQuery(), {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || "Unknown server error");
+                alert(`Success: ${result.message} The page will now reload.`);
+                location.reload();
+            } catch (error) {
+                alert(`Error during reset: ${error.message}`);
+            }
+        }
+
+        function initTabs() {
+            const tabButtons = [DOM['tab-btn-moderation'], DOM['tab-btn-analytics']];
+            const tabContents = [DOM['tab-content-moderation'], DOM['tab-content-analytics']];
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const tabName = button.dataset.tab;
+                    
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    
+                    tabContents.forEach(content => {
+                        content.id === `tab-content-${tabName}` ? content.classList.add('active') : content.classList.remove('active');
+                    });
+                    
+                    if (tabName === 'analytics' && !DOM['analytics-container'].dataset.loaded) {
+                        fetchCategorySummaries();
+                        DOM['analytics-container'].dataset.loaded = 'true';
+                    }
+                });
+            });
+        }
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                if (DOM.statusFilter) {
+                    DOM.statusFilter.innerHTML = ALL_STATUSES.map(s => `<option value="${s}">${s}</option>`).join('');
+                    DOM.statusFilter.value = 'Approved';
+                    DOM.statusFilter.addEventListener('change', fetchModerationQueue);
+                }
+                if (DOM.categoryFilter) {
+                    DOM.categoryFilter.innerHTML = ALL_CATEGORIES.map(c => `<option value="${c}">${c.charAt(0).toUpperCase() + c.slice(1)}</option>`).join('');
+                    DOM.categoryFilter.addEventListener('change', fetchModerationQueue);
+                }
+                
+                initTabs();
+                
+                fetchModerationQueue(); 
+                fetchClarificationQueue('pending');
+                
+                // --- FIX #3: Split event listeners for clarity ---
+                if (DOM.queueContainer) DOM.queueContainer.addEventListener('click', handleFeedbackAction);
+                if (DOM.clarificationQueueContainer) DOM.clarificationQueueContainer.addEventListener('click', handleClarificationReply);
+                
+                if (DOM.clarificationPendingBtn) DOM.clarificationPendingBtn.addEventListener('click', () => fetchClarificationQueue('pending'));
+                if (DOM.clarificationResolvedBtn) DOM.clarificationResolvedBtn.addEventListener('click', () => fetchClarificationQueue('resolved'));
+                if (DOM.resetDatabaseBtn) {
+                    DOM.resetDatabaseBtn.addEventListener('click', handleResetDatabase);
+                } else {
+                    console.error("Could not find 'resetDatabaseBtn'.");
+                }
+            } catch (error) {
+                console.error("CRITICAL SCRIPT ERROR:", error);
+                if (DOM.queueContainer) {
+                    DOM.queueContainer.innerHTML = `<div class="text-red-700 p-4 text-center"><b>A critical JavaScript error occurred.</b><br>Please check the console (Inspect -> Console) for details.<br>Error: ${error.message}</div>`;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
