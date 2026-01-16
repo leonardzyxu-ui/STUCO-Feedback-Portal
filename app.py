@@ -4,11 +4,13 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 from functools import wraps
+import html as html_lib
 import json
 import re
 import threading
 import random
 import atexit
+import webbrowser
 from collections import defaultdict
 from typing import Any
 
@@ -27,6 +29,7 @@ load_dotenv(dotenv_path=BASE_DIR / '.env')
 # --- CONFIGURATION BLOCK ---
 # ======================================================================
 DATABASE_FILE = 'feedback.db' 
+DATABASE_URL = os.getenv('DATABASE_URL')
 DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY') 
 DEEPSEEK_MODEL = "deepseek-chat"
 DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions"
@@ -34,6 +37,11 @@ DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions"
 DEEPTHINK_OR_NOT = False 
 # Worker thread sleep interval (seconds). 10s for demo, 60s for production.
 WORKER_SLEEP_INTERVAL = 10 
+BROWSER_HOST = os.getenv('BROWSER_HOST', '127.0.0.1')
+HOST = os.getenv('HOST', '0.0.0.0')
+PORT = int(os.getenv('PORT', '5001'))
+AUTO_OPEN_BROWSER = os.getenv('AUTO_OPEN_BROWSER', '1').lower() not in {'0', 'false', 'no'}
+ENABLE_WORKER = os.getenv('ENABLE_WORKER', '1').lower() not in {'0', 'false', 'no'}
 # ======================================================================
 
 USE_REAL_DEEPSEEK = bool(DEEPSEEK_API_KEY)
@@ -47,8 +55,9 @@ if not USE_REAL_DEEPSEEK:
 # --- App Configuration ---
 app = Flask(__name__, static_folder=BASE_DIR, static_url_path='/static', template_folder=BASE_DIR)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default-development-key')
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DATABASE_FILE}'
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL or f'sqlite:///{DATABASE_FILE}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {"pool_pre_ping": True}
 db = SQLAlchemy(app)
 CORS(app) 
 
@@ -87,6 +96,7 @@ class Feedback(BaseModel):
     teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id'), nullable=True) 
     category = db.Column(db.String(50), nullable=False) 
     feedback_text = db.Column(db.Text, nullable=False)
+    context_detail = db.Column(db.String(255), nullable=True)
     year_level_submitted = db.Column(db.String(10), nullable=True) 
     willing_to_share_name = db.Column(db.Boolean, default=False)
     submitted_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -258,6 +268,38 @@ def run_toxicity_check(text_input):
     if USE_REAL_DEEPSEEK:
         return run_real_deepseek_toxicity_check(text_input)
     return run_mock_toxicity_check(text_input)
+
+BULLET_REGEX = re.compile(r"<li>(.*?)</li>", re.IGNORECASE | re.DOTALL)
+
+def extract_bullets_from_html(summary_html):
+    if not summary_html:
+        return []
+    matches = BULLET_REGEX.findall(summary_html)
+    if matches:
+        bullets = []
+        for match in matches:
+            text = re.sub(r"<[^>]+>", "", match)
+            text = html_lib.unescape(text).strip()
+            if text:
+                bullets.append(text)
+        return bullets
+    text = re.sub(r"<[^>]+>", " ", summary_html)
+    text = html_lib.unescape(text)
+    lines = [line.strip(" -\t") for line in text.splitlines()]
+    return [line for line in lines if line]
+
+def get_summary_bullets(summary_entry, is_positive):
+    if not summary_entry:
+        return []
+    bullets = summary_entry.raw_positive_bullets if is_positive else summary_entry.raw_actionable_bullets
+    if bullets:
+        return bullets
+    summary_html = summary_entry.latest_positive_summary if is_positive else summary_entry.latest_actionable_summary
+    return extract_bullets_from_html(summary_html)
+
+def render_bullets_html(bullets):
+    safe_items = [html_lib.escape(item) for item in bullets]
+    return "<ul>" + "".join(f"<li>{item}</li>" for item in safe_items) + "</ul>"
 
 def generate_mock_summary(target_id, summary_type='teacher'):
     """
@@ -504,6 +546,7 @@ def run_deepseek_category_summary(target_id):
 # ======================================================================
 
 worker_thread = None
+worker_started = False
 stop_worker_event = threading.Event()
 
 def summary_worker_thread(flask_app):
@@ -566,13 +609,22 @@ def is_thread_alive(thread):
 
 def start_worker_thread():
     global worker_thread
+    global worker_started
     if is_thread_alive(worker_thread):
         return False
     stop_worker_event.clear()
     worker_thread = threading.Thread(target=summary_worker_thread, args=(app,))
     worker_thread.daemon = True
     worker_thread.start()
+    worker_started = True
     return True
+
+def open_browser():
+    url = f"http://{BROWSER_HOST}:{PORT}/?mock_user_id=1"
+    try:
+        webbrowser.open(url)
+    except Exception as exc:
+        print(f"WARNING: Could not open browser automatically: {exc}")
 
 # ======================================================================
 # --- V2.0 Seeding (Now includes Ratings & Clarifications) ---
@@ -597,9 +649,9 @@ def seed_data():
     db.session.commit()
     
     f1 = Feedback(id=1, teacher_id=1, year_level_submitted='Year 7', feedback_text='Mr. Harper is a great teacher! His explanations are very clear.', willing_to_share_name=True, submitted_by_user_id=1, category='teacher', rating_clarity=5, rating_pacing=4, rating_resources=5, rating_support=5)
-    f2 = Feedback(id=2, teacher_id=None, year_level_submitted='N/A', feedback_text='The cafeteria food, especially the pasta, has been excellent this week.', willing_to_share_name=False, submitted_by_user_id=1, category='food')
-    f3 = Feedback(id=3, teacher_id=None, year_level_submitted='N/A', feedback_text='This teacher is a horrible bully and should be fired! I hate their lessons.', willing_to_share_name=False, submitted_by_user_id=1, category='other')
-    f4 = Feedback(id=4, teacher_id=None, year_level_submitted='N/A', feedback_text='The new uniform policy is unclear. We need more examples of what is allowed.', willing_to_share_name=False, submitted_by_user_id=1, category='policy')
+    f2 = Feedback(id=2, teacher_id=None, year_level_submitted='N/A', feedback_text='The cafeteria food, especially the pasta, has been excellent this week.', context_detail='Upper School Hot Lunch', willing_to_share_name=False, submitted_by_user_id=1, category='food')
+    f3 = Feedback(id=3, teacher_id=None, year_level_submitted='N/A', feedback_text='This teacher is a horrible bully and should be fired! I hate their lessons.', context_detail='Advisory', willing_to_share_name=False, submitted_by_user_id=1, category='other')
+    f4 = Feedback(id=4, teacher_id=None, year_level_submitted='N/A', feedback_text='The new uniform policy is unclear. We need more examples of what is allowed.', context_detail='Uniform Policy', willing_to_share_name=False, submitted_by_user_id=1, category='policy')
     f5 = Feedback(id=5, teacher_id=1, year_level_submitted='Year 7', feedback_text='This class is a bit too fast and the homework is hard.', willing_to_share_name=False, submitted_by_user_id=1, category='teacher', rating_clarity=3, rating_pacing=2, rating_resources=3, rating_support=4)
 
     db.session.add_all([f1, f2, f3, f4, f5])
@@ -678,9 +730,14 @@ def submit_feedback():
     teacher_id = data.get('teacher_id')
     year_level = data.get('year_level')
     willing_to_share_name = data.get('willing_to_share_name', False)
+    context_detail = data.get('context_detail')
     
     if not feedback_text or not category:
         return jsonify({'error': 'Missing required fields.'}), 400
+    if len(feedback_text) > 2000:
+        return jsonify({'error': 'Feedback text exceeds 2000 characters.'}), 400
+    if context_detail and len(context_detail) > 255:
+        return jsonify({'error': 'Context detail exceeds 255 characters.'}), 400
     
     teacher_id_int = None
     if category == 'teacher':
@@ -703,6 +760,7 @@ def submit_feedback():
             category=category,
             teacher_id=teacher_id_int, 
             year_level_submitted=year_level,
+            context_detail=context_detail,
             willing_to_share_name=willing_to_share_name,
             toxicity_score=screening['toxicity_score'],
             is_inappropriate=is_inappropriate,
@@ -792,15 +850,27 @@ def get_teacher_holistic_summary():
     teacher_id = g.teacher_profile.id
     summary = db.session.get(TeacherSummary, teacher_id)
     if not summary:
+        positive_bullets = ["No summaries have been generated yet."]
+        actionable_bullets = ["Please check back after new feedback is submitted."]
         return jsonify({
             'teacher_name': g.teacher_profile.name,
-            'positive_summary': '<ul><li>No summaries have been generated yet.</li></ul>',
-            'actionable_summary': '<ul><li>Please check back after new feedback is submitted.</li></ul>'
+            'positive_bullets': positive_bullets,
+            'actionable_bullets': actionable_bullets,
+            'positive_summary': render_bullets_html(positive_bullets),
+            'actionable_summary': render_bullets_html(actionable_bullets)
         })
+    positive_bullets = get_summary_bullets(summary, True)
+    actionable_bullets = get_summary_bullets(summary, False)
+    if not positive_bullets:
+        positive_bullets = ["No summaries have been generated yet."]
+    if not actionable_bullets:
+        actionable_bullets = ["Please check back after new feedback is submitted."]
     return jsonify({
         'teacher_name': g.teacher_profile.name,
-        'positive_summary': summary.latest_positive_summary,
-        'actionable_summary': summary.latest_actionable_summary,
+        'positive_bullets': positive_bullets,
+        'actionable_bullets': actionable_bullets,
+        'positive_summary': render_bullets_html(positive_bullets),
+        'actionable_summary': render_bullets_html(actionable_bullets),
         'last_updated': summary.last_updated.isoformat()
     })
 
@@ -863,36 +933,37 @@ def get_admin_feedback_queue():
     for f in query.order_by(Feedback.id.desc()).all():
         teacher = db.session.get(Teacher, f.teacher_id)
         teacher_name = teacher.name if teacher else 'N/A'
-        summary_positive = "N/A"
-        summary_actionable = "N/A"
+        summary_positive_bullets = []
+        summary_actionable_bullets = []
+        summary_note = None
         
         if f.category == 'teacher' and f.teacher_id:
             teacher_summary = db.session.get(TeacherSummary, f.teacher_id)
             if teacher_summary:
-                summary_positive = teacher_summary.latest_positive_summary
-                summary_actionable = teacher_summary.latest_actionable_summary
+                summary_positive_bullets = get_summary_bullets(teacher_summary, True)
+                summary_actionable_bullets = get_summary_bullets(teacher_summary, False)
             else:
-                summary_positive = "N/A (Summary not yet generated)"
-                summary_actionable = "N/A (Summary not yet generated)"
+                summary_note = "Summary not yet generated."
         
         elif f.category != 'teacher':
              category_summary = db.session.get(CategorySummary, f.category)
              if category_summary:
-                 summary_positive = category_summary.latest_positive_summary
-                 summary_actionable = category_summary.latest_actionable_summary
+                 summary_positive_bullets = get_summary_bullets(category_summary, True)
+                 summary_actionable_bullets = get_summary_bullets(category_summary, False)
              else:
-                summary_positive = "N/A (Summary not yet generated)"
-                summary_actionable = "N/A (Summary not yet generated)"
+                summary_note = "Summary not yet generated."
 
         queue_items.append({
             'id': f.id,
             'teacher_name': teacher_name,
             'category': f.category,
             'feedback_text': f.feedback_text,
+            'context_detail': f.context_detail,
             'toxicity_score': f.toxicity_score,
             'status': f.status,
-            'summary_positive': summary_positive,
-            'summary_actionable': summary_actionable,
+            'summary_positive_bullets': summary_positive_bullets,
+            'summary_actionable_bullets': summary_actionable_bullets,
+            'summary_note': summary_note,
             'is_inappropriate': f.is_inappropriate,
             'is_summary_approved': f.is_summary_approved
         })
@@ -905,10 +976,14 @@ def get_category_summaries():
         summaries = CategorySummary.query.all()
         summary_data = []
         for s in summaries:
+            positive_bullets = get_summary_bullets(s, True)
+            actionable_bullets = get_summary_bullets(s, False)
             summary_data.append({
                 'category_name': s.category_name,
-                'positive_summary': s.latest_positive_summary,
-                'actionable_summary': s.latest_actionable_summary,
+                'positive_bullets': positive_bullets,
+                'actionable_bullets': actionable_bullets,
+                'positive_summary': render_bullets_html(positive_bullets),
+                'actionable_summary': render_bullets_html(actionable_bullets),
                 'last_updated': s.last_updated.isoformat()
             })
         return jsonify(summary_data)
@@ -1045,7 +1120,7 @@ def reset_database():
         
     finally:
         # --- FIX #1: Ensure worker *always* restarts ---
-        if start_worker_thread():
+        if ENABLE_WORKER and start_worker_thread():
             print("WORKER: Worker thread has been restarted.")
             
     return jsonify({'message': 'Database has been successfully reset.'}), 200
@@ -1058,8 +1133,12 @@ if __name__ == '__main__':
         db.create_all()
         seed_data()
     
-    print("MAIN: Starting background worker thread...")
-    start_worker_thread()
+    if ENABLE_WORKER:
+        print("MAIN: Starting background worker thread...")
+        start_worker_thread()
+
+    if AUTO_OPEN_BROWSER:
+        threading.Timer(1.0, open_browser).start()
     
     def stop_worker():
         print("MAIN: Shutting down worker thread...")
@@ -1069,8 +1148,8 @@ if __name__ == '__main__':
     atexit.register(stop_worker)
         
     print("\n--- SERVER READY ---")
-    print("Student: http://127.0.0.1:5000/?mock_user_id=1")
-    print("Teacher: http://127.0.0.1:5000/teach_frontend.html?mock_user_id=2")
-    print("Admin: http://127.0.0.1:5000/stuco_admin_dashboard.html?mock_user_id=3")
+    print(f"Student: http://{BROWSER_HOST}:{PORT}/?mock_user_id=1")
+    print(f"Teacher: http://{BROWSER_HOST}:{PORT}/teach_frontend.html?mock_user_id=2")
+    print(f"Admin: http://{BROWSER_HOST}:{PORT}/stuco_admin_dashboard.html?mock_user_id=3")
     print("--------------------------------------------------")
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host=HOST, port=PORT, debug=False)

@@ -7,349 +7,579 @@
     <link rel="icon" href="/static/logo.png?v=2" type="image/png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        'stuco-primary-dark': '#0a0e27', 
-                        'stuco-surface': '#1a1f3a', 
-                        'stuco-accent': '#00d4ff', 
-                        'stuco-purple': '#8b5cf6', 
-                        'stuco-pink': '#ec4899', 
-                        'stuco-blue': { '50': '#eff6ff', '600': '#2563eb' } 
-                    }
-                }
-            }
+    <style>
+        :root {
+            --ink: #1f2933;
+            --ink-muted: #52606d;
+            --accent: #0ea5a6;
+            --accent-strong: #0f766e;
+            --accent-warm: #f97316;
+            --accent-soft: #fff2e7;
+            --surface: #ffffff;
+            --surface-soft: #f8fafc;
+            --border: rgba(15, 23, 42, 0.08);
+            --shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
         }
-    </script>
-<style>
-    body {
-        background-color: #0a0e27;
-        color: white;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-    }
-    .header-container {
-         display: flex;
-         align-items: center;
-         justify-content: center;
-         padding: 2rem 1rem 1rem;
-    }
-    .capsule-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 1rem 2rem;
-        font-size: 1rem;
-        font-weight: 600;
-        color: white;
-        border-radius: 40px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-        transition: all 250ms ease-in-out;
-        transform-origin: center;
-        min-width: 280px;
-        width: auto;
-    }
-    .capsule-btn:hover {
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.8), 
-                    0 0 25px rgba(0, 212, 255, 0.4);
-        transform: scale(1.02);
-        z-index: 10;
-    }
-    .capsule-btn svg {
-        width: 1.25rem;
-        height: 1.25rem;
-        margin-right: 0.75rem;
-        flex-shrink: 0;
-    }
-    .ai-gradient {
-        background-image: linear-gradient(to right, #ec4899, #7c3aed);
-        background-size: 200% auto;
-        transition: background-position 0.4s ease-out;
-    }
-    .ai-gradient:hover {
-        background-position: right center;
-    }
-    .default-purple-btn {
-         background-color: #1a1f3a;
-    }
-    .hidden-page {
-        display: none !important;
-    }
-    @keyframes moveGradient {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-    }
-    .animated-gradient-text {
-        background-image: linear-gradient(
-            90deg,
-            #E5E7EB, 
-            #3B82F6, 
-            #E5E7EB, 
-            #3B82F6 
-        );
-        background-size: 400% 400%;
-        animation: moveGradient 8s ease infinite;
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-        padding-bottom: 0.2em;
-    }
-    .star-rating {
-        display: flex;
-        flex-direction: row-reverse;
-        justify-content: flex-end;
-    }
-    .star-rating input[type="radio"] {
-        display: none;
-    }
-    .star-rating label {
-        color: #4b5563; /* gray-600 */
-        font-size: 2.5rem;
-        padding: 0 0.15em;
-        cursor: pointer;
-        transition: color 0.2s;
-    }
-    .star-rating input[type="radio"]:checked ~ label,
-    .star-rating:not(:checked) > label:hover,
-    .star-rating:not(:checked) > label:hover ~ label {
-        color: #f59e0b; /* amber-500 */
-    }
-</style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Source Sans 3", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at 10% 10%, #fef3c7 0%, transparent 35%),
+                radial-gradient(circle at 90% 0%, #dbeafe 0%, transparent 35%),
+                radial-gradient(circle at 80% 90%, #dcfce7 0%, transparent 40%),
+                #f7f3ee;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: "Space Grotesk", sans-serif;
+            letter-spacing: -0.02em;
+        }
+
+        .page-shell {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .site-header {
+            padding: 2rem 0 1rem;
+        }
+
+        .container {
+            width: min(1120px, 92vw);
+            margin: 0 auto;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+        }
+
+        .logo-mark {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--accent), #22d3ee);
+            box-shadow: 0 10px 20px rgba(14, 165, 166, 0.3);
+            display: grid;
+            place-items: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.4rem 0.85rem;
+            border-radius: 999px;
+            background: rgba(15, 118, 110, 0.12);
+            color: var(--accent-strong);
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 2rem;
+            align-items: center;
+            margin-top: 1rem;
+        }
+
+        .hero-card {
+            background: var(--surface);
+            border-radius: 28px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .hero-card ul {
+            margin: 0;
+            padding-left: 1.1rem;
+            color: var(--ink-muted);
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 1.5rem;
+        }
+
+        .btn {
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            border-radius: 16px;
+            padding: 0.9rem 1.4rem;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            font-family: "Space Grotesk", sans-serif;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #22d3ee);
+            color: white;
+            box-shadow: 0 14px 24px rgba(14, 165, 166, 0.25);
+        }
+
+        .btn-secondary {
+            background: white;
+            border: 1px solid var(--border);
+            color: var(--ink);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .section-title {
+            margin: 2.5rem 0 1rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.2rem;
+        }
+
+        .category-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            padding: 1.4rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            text-align: left;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+        }
+
+        .category-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 18px 30px rgba(15, 23, 42, 0.12);
+        }
+
+        .category-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            display: grid;
+            place-items: center;
+            background: var(--accent-soft);
+            color: var(--accent-strong);
+        }
+
+        .category-card h4 {
+            margin: 0;
+            font-size: 1.05rem;
+        }
+
+        .category-card p {
+            margin: 0;
+            color: var(--ink-muted);
+            font-size: 0.95rem;
+        }
+
+        .hidden-page {
+            display: none !important;
+        }
+
+        .form-shell {
+            background: var(--surface);
+            border-radius: 30px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: var(--accent-strong);
+            font-weight: 600;
+        }
+
+        .form-header {
+            margin: 1rem 0 2rem;
+        }
+
+        .form-header p {
+            color: var(--ink-muted);
+        }
+
+        .field {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: var(--surface-soft);
+            font-size: 1rem;
+            color: var(--ink);
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .field:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(14, 165, 166, 0.2);
+        }
+
+        .section-card {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1.25rem;
+        }
+
+        .collapsible {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, opacity 0.4s ease;
+        }
+
+        .collapsible.is-open {
+            max-height: 800px;
+            opacity: 1;
+        }
+
+        .star-rating {
+            display: flex;
+            flex-direction: row-reverse;
+            justify-content: flex-end;
+            gap: 0.1rem;
+        }
+
+        .star-rating input[type="radio"] {
+            display: none;
+        }
+
+        .star-rating label {
+            color: #cbd5f5;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .star-rating input[type="radio"]:checked ~ label,
+        .star-rating:not(:checked) > label:hover,
+        .star-rating:not(:checked) > label:hover ~ label {
+            color: var(--accent-warm);
+        }
+
+        .toggle {
+            width: 56px;
+            height: 30px;
+            background: #cbd5e1;
+            border-radius: 999px;
+            position: relative;
+            transition: background 0.2s ease;
+        }
+
+        .toggle span {
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 999px;
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            transition: transform 0.2s ease;
+            box-shadow: 0 6px 12px rgba(15, 23, 42, 0.2);
+        }
+
+        .toggle.active {
+            background: var(--accent);
+        }
+
+        .toggle.active span {
+            transform: translateX(26px);
+        }
+
+        .alert {
+            margin-top: 1.5rem;
+            padding: 0.9rem 1.1rem;
+            border-radius: 16px;
+            font-weight: 600;
+        }
+
+        .alert-success { background: #dcfce7; color: #166534; }
+        .alert-error { background: #fee2e2; color: #991b1b; }
+        .alert-warning { background: #ffedd5; color: #9a3412; }
+        .alert-info { background: #dbeafe; color: #1d4ed8; }
+
+        .reveal {
+            opacity: 0;
+            animation: fadeUp 0.7s ease forwards;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 640px) {
+            .hero-actions { flex-direction: column; }
+            .btn { width: 100%; }
+        }
+    </style>
 </head>
-<body class="font-sans">
-    
-    <header class="bg-stuco-primary-dark">
-        <div class="header-container bg-stuco-surface shadow-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-stuco-accent">
-                 <path fill-rule="evenodd" d="M10.788 3.21c.427-1.124 1.79-1.124 2.217 0l.967 2.41a1.5 1.5 0 0 0 1.293.918l2.673.187c1.171.082 1.637 1.55.77 2.37l-1.633 1.62a1.5 1.5 0 0 0-.44 1.488l.38 2.585c.175 1.177-1.026 2.094-2.072 1.42l-2.125-1.424a1.5 1.5 0 0 0-1.696 0l-2.125 1.424c-1.046.674-2.247-.243-2.072-1.42l.38-2.585a1.5 1.5 0 0 0-.44-1.488L3.25 9.073c-.867-.82-.401-2.288.77-2.37l2.673-.187a1.5 1.5 0 0 0 1.293.918l.967-2.41Z" clip-rule="evenodd" />
-             </svg>
-            <h1 class="text-xl sm:text-2xl font-bold text-white pl-2">STUCO Student Portal</h1>
-        </div>
-    </header>
-
-    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        <div id="homeScreen" class="page-transition">
-            <div class="bg-stuco-surface p-10 sm:p-14 rounded-3xl shadow-2xl text-center">
-                
-                <h2 class="text-4xl sm:text-5xl font-extrabold leading-normal sm:leading-tight animated-gradient-text" style="white-space: pre-line;">Feedback.
-Anywhere, Anytime, about Anything.</h2>
-                
-                <p class="text-lg text-stuco-accent font-semibold mb-10 mt-4"> Your voice, amplified by STUCO.
-                </p>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="flex justify-center">
-                        <button data-category="teacher" class="nav-btn capsule-btn text-white ai-gradient" style="border-radius: 40px;">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 mr-3 flex-shrink-0">
-                                <path d="M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                                <path fill-rule="evenodd" d="M1.5 12.A4.5 4.5 0 0 0 6 16.5h8a4.5 4.5 0 0 0 4.5-4.5V8.25a.75.75 0 0 0-1.5 0v3.75a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V8.25a.75.75 0 0 0-1.5 0v3.75Z" clip-rule="evenodd" />
-                            </svg>
-                            Teacher Suggestions
-                        </button>
-                    </div>
-                    <div class="flex justify-center">
-                        <button data-category="food" class="nav-btn capsule-btn text-white default-purple-btn" style="border-radius: 40px;">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 mr-3 flex-shrink-0">
-                                <path d="M16.22 8.303a1.5 1.5 0 0 0-3.22.61l-1.6 4.8a1.5 1.5 0 0 0 2.99.388l1.6-4.8a1.5 1.5 0 0 0 .23-.998Z" />
-                                <path fill-rule="evenodd" d="M3.75 5.25a3 3 0 0 0-3 3v6a3 3 0 0 0 3 3h12.5a3 3 0 0 0 3-3v-6a3 3 0 0 0-3-3H3.75Zm-1.5 3a1.5 1.5 0 0 1 1.5-1.5h12.5a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H3.75a1.5 1.5 0 0 1-1.5-1.5v-6Z" clip-rule="evenodd" />
-                            </svg>
-                            Food Suggestions
-                        </button>
-                    </div>
-                    <div class="flex justify-center">
-                        <button data-category="policy" class="nav-btn capsule-btn text-white default-purple-btn" style="border-radius: 40px;">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 mr-3 flex-shrink-0">
-                                <path fill-rule="evenodd" d="M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm-1.023 9.715a.75.75 0 1 0 1.06 1.06L12 11.06l1.963 1.964a.75.75 0 1 0 1.06-1.06L13.06 10l1.964-1.963a.75.75 0 1 0-1.06-1.06L12 8.94 10.037 6.977a.75.75 0 0 0-1.06 1.06L10.94 10 9 11.963Z" clip-rule="evenodd" />
-                            </svg>
-                            Policy Suggestions
-                        </button>
-                    </div>
-                    <div class="flex justify-center">
-                        <button data-category="equipment" class="nav-btn capsule-btn text-white default-purple-btn" style="border-radius: 40px;">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 mr-3 flex-shrink-0">
-                                <path fill-rule="evenodd" d="M2.5 3A1.5 1.5 0 0 0 1 4.5V15.5A1.5 1.5 0 0 0 2.5 17h15a1.5 1.5 0 0 0 1.5-1.5V4.5A1.5 1.5 0 0 0 17.5 3h-15Zm11.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h1Zm-3 0a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h1Zm-3 0a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h1ZM4 11.25a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H4.75a.75.75 0 0 1-.75-.75Zm0 3a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H4.75a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
-                            </svg>
-                            General Services (GS)
-                        </button>
-                    </div>
-                    <div class="flex justify-center">
-                        <button data-category="school-buses" class="nav-btn capsule-btn text-white default-purple-btn" style="border-radius: 40px;">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 mr-3 flex-shrink-0">
-                                <path fill-rule="evenodd" d="M12.22 4.032a.75.75 0 0 0-1.061 0l-4.5 4.5a.75.75 0 0 0 1.06 1.061L12 6.31l3.72 3.72a.75.75 0 1 0 1.06-1.061l-4.5-4.5Z" clip-rule="evenodd" />
-                                <path fill-rule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h12.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 10Z" clip-rule="evenodd" />
-                                <path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2a.5.5 0 0 1 .5-.5Z" clip-rule="evenodd" />
-                                <path fill-rule="evenodd" d="M6 12.5a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2a.5.5 0 0 1 .5-.5Z" clip-rule="evenodd" />
-                                <path fill-rule="evenodd" d="M14 12.5a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2a.5.5 0 0 1 .5-.5Z" clip-rule="evenodd" />
-                            </svg>
-                            School Buses
-                        </button>
-                    </div>
-                    <div class="flex justify-center">
-                        <button data-category="other" class="nav-btn capsule-btn text-white default-purple-btn" style="border-radius: 40px;">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 mr-3 flex-shrink-0">
-                                <path d="M10 3.75a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-1.5 0V4.5a.75.75 0 0 1 .75-.75Z" />
-                                <path fill-rule="evenodd" d="M5.5 5.5A.5.5 0 0 1 6 5h8a.5.5 0 0 1 0 1H6a.5.5 0 0 1-.5-.5ZM7 7a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H7Z" clip-rule="evenodd" />
-                            </svg>
-                            Other Suggestions
-                        </button>
-                    </div>
-                    <div class="md:col-span-2 flex justify-center">
-                        <button data-category="help" class="nav-btn capsule-btn text-white default-purple-btn" style="border-radius: 40px;">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 mr-3 flex-shrink-0">
-                                <path d="M3 4a2 2 0 0 0-2 2v1.161l8.441 4.221a1.25 1.25 0 0 0 1.118 0L19 7.162V6a2 2 0 0 0-2-2H3Z" />
-                                <path d="m19 8.839-7.77 3.885a2.75 2.75 0 0 1-2.46 0L1 8.839V14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.839Z" />
-                            </svg>
-                            Reaching Out for Help
-                        </button>
+<body>
+    <div class="page-shell">
+        <header class="site-header">
+            <div class="container header-row">
+                <div class="brand">
+                    <div class="logo-mark">S</div>
+                    <div>
+                        <p class="text-sm uppercase tracking-[0.25em] text-slate-400">STUCO</p>
+                        <h1 class="text-2xl font-semibold">Student Feedback Portal</h1>
                     </div>
                 </div>
+                <div class="pill">Anonymous by default</div>
             </div>
-        </div>
+        </header>
 
-
-        <div id="formContainer" class="page-transition hidden-page">
-             <div class="bg-stuco-surface backdrop-blur-md p-8 sm:p-10 rounded-3xl shadow-2xl">
-                <button id="backButton" class="mb-4 flex items-center text-stuco-accent hover:text-stuco-purple transition">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5 mr-1">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                    </svg>
-                    Back to Categories
-                </button>
-
-                <h2 class="text-3xl font-extrabold text-stuco-accent mb-2">
-                    Submission: <span id="currentCategoryTitle" class="text-white"></span>
-                </h2>
-                <p class="text-gray-400 mb-8">Please fill out the form below. Your identity remains anonymous by default.</p>
-
-                <form id="feedbackForm" class="space-y-6">
-                    <input type="hidden" id="selectedCategory" name="selectedCategory">
-                    
-                    <div id="teacherFieldsContainer" class="transition-all duration-500 ease-in-out overflow-hidden max-h-0 opacity-0">
-                        <div class="border border-stuco-purple/50 bg-stuco-surface/50 rounded-2xl p-6 space-y-4">
-                            <p class="font-semibold text-stuco-accent">1. Teacher-Specific Details (Required)</p>
-                            <div>
-                                <label for="yearLevel" class="block text-sm font-medium text-gray-300 mb-1">Select Year Level</label>
-                                <select id="yearLevel" class="w-full border-white/20 bg-black/30 text-white rounded-xl shadow-sm py-2 px-3 text-base focus:border-stuco-accent focus:ring-stuco-accent">
-                                    <option value="" disabled selected>Select Year Level...</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label for="teacherId" class="block text-sm font-medium text-gray-300 mb-1">Select Teacher Name</label>
-                                <select id="teacherId" class="w-full border-white/20 bg-black/30 text-white rounded-xl shadow-sm py-2 px-3 text-base focus:border-stuco-accent focus:ring-stuco-accent" disabled>
-                                    <option value="" disabled selected>Select Teacher...</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div id="teacherRatingsContainer" class="transition-all duration-500 ease-in-out overflow-hidden max-h-0 opacity-0">
-                        <div class="border border-stuco-purple/50 bg-stuco-surface/50 rounded-2xl p-6 space-y-4">
-                            <p class="font-semibold text-stuco-accent">2. Rate Your Experience (Optional)</p>
-                            
-                            <div class="flex flex-col sm:flex-row justify-between sm:items-center">
-                                <label class="block text-base font-medium text-gray-300 mb-1 sm:mb-0">Clarity</label>
-                                <div class="star-rating" data-rating-for="clarity">
-                                    <input type="radio" id="clarity-5" name="rating-clarity" value="5" /><label for="clarity-5" title="5 stars">&#9733;</label>
-                                    <input type="radio" id="clarity-4" name="rating-clarity" value="4" /><label for="clarity-4" title="4 stars">&#9733;</label>
-                                    <input type="radio" id="clarity-3" name="rating-clarity" value="3" /><label for="clarity-3" title="3 stars">&#9733;</label>
-                                    <input type="radio" id="clarity-2" name="rating-clarity" value="2" /><label for="clarity-2" title="2 stars">&#9733;</label>
-                                    <input type="radio" id="clarity-1" name="rating-clarity" value="1" /><label for="clarity-1" title="1 star">&#9733;</label>
-                                </div>
-                            </div>
-                            
-                            <div class="flex flex-col sm:flex-row justify-between sm:items-center">
-                                <label class="block text-base font-medium text-gray-300 mb-1 sm:mb-0">Pacing</label>
-                                <div class="star-rating" data-rating-for="pacing">
-                                    <input type="radio" id="pacing-5" name="rating-pacing" value="5" /><label for="pacing-5" title="5 stars">&#9733;</label>
-                                    <input type="radio" id="pacing-4" name="rating-pacing" value="4" /><label for="pacing-4" title="4 stars">&#9733;</label>
-                                    <input type="radio" id="pacing-3" name="rating-pacing" value="3" /><label for="pacing-3" title="3 stars">&#9733;</label>
-                                    <input type="radio" id="pacing-2" name="rating-pacing" value="2" /><label for="pacing-2" title="2 stars">&#9733;</label>
-                                    <input type="radio" id="pacing-1" name="rating-pacing" value="1" /><label for="pacing-1" title="1 star">&#9733;</label>
-                                </div>
-                            </div>
-
-                            <div class="flex flex-col sm:flex-row justify-between sm:items-center">
-                                <label class="block text-base font-medium text-gray-300 mb-1 sm:mb-0">Resources</label>
-                                <div class="star-rating" data-rating-for="resources">
-                                    <input type="radio" id="resources-5" name="rating-resources" value="5" /><label for="resources-5" title="5 stars">&#9733;</label>
-                                    <input type="radio" id="resources-4" name="rating-resources" value="4" /><label for="resources-4" title="4 stars">&#9733;</label>
-                                    <input type="radio" id="resources-3" name="rating-resources" value="3" /><label for="resources-3" title="3 stars">&#9733;</label>
-                                    <input type="radio" id="resources-2" name="rating-resources" value="2" /><label for="resources-2" title="2 stars">&#9733;</label>
-                                    <input type="radio" id="resources-1" name="rating-resources" value="1" /><label for="resources-1" title="1 star">&#9733;</label>
-                                </div>
-                            </div>
-
-                            <div class="flex flex-col sm:flex-row justify-between sm:items-center">
-                                <label class="block text-base font-medium text-gray-300 mb-1 sm:mb-0">Support</label>
-                                <div class="star-rating" data-rating-for="support">
-                                    <input type="radio" id="support-5" name="rating-support" value="5" /><label for="support-5" title="5 stars">&#9733;</label>
-                                    <input type="radio" id="support-4" name="rating-support" value="4" /><label for="support-4" title="4 stars">&#9733;</label>
-                                    <input type="radio" id="support-3" name="rating-support" value="3" /><label for="support-3" title="3 stars">&#9733;</label>
-                                    <input type="radio" id="support-2" name="rating-support" value="2" /><label for="support-2" title="2 stars">&#9733;</label>
-                                    <input type="radio" id="support-1" name="rating-support" value="1" /><label for="support-1" title="1 star">&#9733;</Lal>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="generalFieldsContainer" class="transition-all duration-500 ease-in-out overflow-hidden max-h-0 opacity-0">
-                        <div class="bg-stuco-surface/50 rounded-2xl p-6 space-y-4">
-                            <p class="font-semibold text-white">1. Contextual Details (Optional)</p>
-                            <div>
-                                 <label for="contextField" id="contextLabel" class="block text-sm font-medium text-gray-300 mb-1">Relevant Detail</label>
-                                 <input type="text" id="contextField" class="w-full border-white/20 bg-black/30 text-white rounded-xl shadow-sm py-2 px-3 text-base focus:border-stuco-accent focus:ring-stuco-accent" placeholder="Enter detail (optional)" />
-                            </div>
-                        </div>
-                    </div>
-                    
+        <main class="container pb-16">
+            <section id="homeScreen" class="reveal">
+                <div class="hero">
                     <div>
-                        <label for="feedbackText" class="block text-sm font-semibold text-white mb-2">
-                            <span id="feedback-text-label-number">2</span>. Enter Feedback Text (Required)
-                        </label>
-                         <textarea id="feedbackText" rows="6" class="w-full border border-white/20 bg-black/30 text-white rounded-2xl shadow-sm py-3 px-4 focus:border-stuco-accent focus:ring-stuco-accent text-lg" placeholder="Enter your detailed, constructive suggestion here..."></textarea>
-                    </div>
-                    
-                    <div class="bg-stuco-surface/50 border border-stuco-purple/50 p-4 rounded-2xl flex items-center justify-between shadow-sm">
-                        <div class="mr-4">
-                            <strong class="text-base text-white">Anonymity Control</strong>
-                            <p class="text-sm text-gray-400 mt-1">Willing to share your name? Your identity is always shielded unless content is flagged by STUCO as inappropriate.</p>
-                        </div>
-                        <div id="shareNameToggleInner" class="relative inline-flex items-center h-6 rounded-full w-11 cursor-pointer transition-colors bg-gray-600">
-                            <span id="shareNameToggleKnobInner" class="inline-block w-4 h-4 transform bg-white rounded-full transition-transform translate-x-1"></span>
+                        <h2 class="text-4xl sm:text-5xl font-bold leading-tight">Say it straight. We route it safely.</h2>
+                        <p class="mt-4 text-lg text-slate-600">Share what is working and what needs to change. Your feedback is filtered for safety and sent to STUCO for action.</p>
+                        <div class="hero-actions">
+                            <button data-category="teacher" class="btn btn-primary nav-btn">Teacher feedback</button>
+                            <button data-category="food" class="btn btn-secondary nav-btn">Food and campus</button>
                         </div>
                     </div>
-                    
-                    <button type="submit" id="submitBtnInner" class="w-full py-3.5 mt-4 bg-stuco-purple text-white font-semibold text-lg rounded-2xl shadow-lg hover:bg-stuco-purple transition duration-150 ease-in-out transform hover:scale-[1.005] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-stuco-accent" style="box-shadow: 0 4px 6px -1px var(--tw-colors-stuco-purple), 0 0 10px rgba(139, 92, 246, 0.5);">
-                        Submit Feedback Securely
-                    </button>
-                    <div id="submissionMessageInner" class="mt-6 text-center text-white p-3 rounded-2xl font-medium shadow-md hidden" role="alert"></div>
-                </form>
-             </div>
-        </div>
+                    <div class="hero-card">
+                        <h3 class="text-xl font-semibold">What happens next</h3>
+                        <ul class="mt-4">
+                            <li>AI screens for unsafe language.</li>
+                            <li>STUCO reviews approved feedback.</li>
+                            <li>Teachers receive summary insights.</li>
+                        </ul>
+                    </div>
+                </div>
 
-    </main>
+                <div class="section-title">Choose a topic</div>
+                <div class="category-grid">
+                    <button data-category="teacher" class="category-card nav-btn" style="animation-delay: 0.05s;">
+                        <div class="category-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                                <path d="M12 2a4 4 0 0 0-4 4v2a4 4 0 1 0 8 0V6a4 4 0 0 0-4-4Zm-7 18a7 7 0 0 1 14 0H5Z" />
+                            </svg>
+                        </div>
+                        <h4>Teacher suggestions</h4>
+                        <p>Share classroom feedback and ratings.</p>
+                    </button>
+                    <button data-category="food" class="category-card nav-btn" style="animation-delay: 0.1s;">
+                        <div class="category-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                                <path d="M4 7a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v4a7 7 0 0 1-7 7H11a7 7 0 0 1-7-7V7Z" />
+                            </svg>
+                        </div>
+                        <h4>Food</h4>
+                        <p>Menus, service, and dining flow.</p>
+                    </button>
+                    <button data-category="policy" class="category-card nav-btn" style="animation-delay: 0.15s;">
+                        <div class="category-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                                <path d="M7 4a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v2h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2V4Z" />
+                            </svg>
+                        </div>
+                        <h4>Policy</h4>
+                        <p>Rules, expectations, and clarity.</p>
+                    </button>
+                    <button data-category="equipment" class="category-card nav-btn" style="animation-delay: 0.2s;">
+                        <div class="category-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                                <path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14l-4-2-4 2-4-2-4 2V5Z" />
+                            </svg>
+                        </div>
+                        <h4>General services</h4>
+                        <p>Equipment, facilities, support.</p>
+                    </button>
+                    <button data-category="school-buses" class="category-card nav-btn" style="animation-delay: 0.25s;">
+                        <div class="category-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                                <path d="M5 3h14a2 2 0 0 1 2 2v11a3 3 0 0 1-3 3h-1a2 2 0 1 1-4 0H11a2 2 0 1 1-4 0H6a3 3 0 0 1-3-3V5a2 2 0 0 1 2-2Z" />
+                            </svg>
+                        </div>
+                        <h4>School buses</h4>
+                        <p>Routes, timing, and safety.</p>
+                    </button>
+                    <button data-category="other" class="category-card nav-btn" style="animation-delay: 0.3s;">
+                        <div class="category-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                                <path d="M12 2a10 10 0 1 0 10 10A10.02 10.02 0 0 0 12 2Zm1 15h-2v-2h2Zm0-4h-2V7h2Z" />
+                            </svg>
+                        </div>
+                        <h4>Other</h4>
+                        <p>Anything else on your mind.</p>
+                    </button>
+                    <button data-category="help" class="category-card nav-btn" style="animation-delay: 0.35s;">
+                        <div class="category-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                                <path d="M4 4h16a2 2 0 0 1 2 2v8a4 4 0 0 1-4 4H9l-5 4V6a2 2 0 0 1 2-2Z" />
+                            </svg>
+                        </div>
+                        <h4>Help</h4>
+                        <p>Reach out for support and care.</p>
+                    </button>
+                </div>
+            </section>
+
+            <section id="formContainer" class="hidden-page">
+                <div class="form-shell">
+                    <button id="backButton" class="back-btn" type="button">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">
+                            <path d="M14.7 6.7a1 1 0 0 1 0 1.4L11.82 11h8.68a1 1 0 1 1 0 2h-8.68l2.88 2.9a1 1 0 1 1-1.4 1.4l-4.6-4.6a1 1 0 0 1 0-1.4l4.6-4.6a1 1 0 0 1 1.4 0Z" />
+                        </svg>
+                        Back to topics
+                    </button>
+
+                    <div class="form-header">
+                        <h2 class="text-3xl font-semibold">Submission: <span id="currentCategoryTitle"></span></h2>
+                        <p>Stay constructive and clear. This stays anonymous unless flagged for safety review.</p>
+                    </div>
+
+                    <form id="feedbackForm" class="space-y-6">
+                        <input type="hidden" id="selectedCategory" name="selectedCategory">
+
+                        <div id="teacherFieldsContainer" class="collapsible">
+                            <div class="section-card space-y-4">
+                                <p class="font-semibold text-slate-700">1. Teacher-specific details</p>
+                                <div>
+                                    <label for="yearLevel" class="block text-sm font-medium text-slate-600 mb-2">Year level</label>
+                                    <select id="yearLevel" class="field">
+                                        <option value="" disabled selected>Select year level</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="teacherId" class="block text-sm font-medium text-slate-600 mb-2">Teacher name</label>
+                                    <select id="teacherId" class="field" disabled>
+                                        <option value="" disabled selected>Select teacher</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="teacherRatingsContainer" class="collapsible">
+                            <div class="section-card space-y-4">
+                                <p class="font-semibold text-slate-700">2. Optional ratings</p>
+                                <div class="flex flex-col sm:flex-row justify-between sm:items-center">
+                                    <label class="block text-base font-medium text-slate-600">Clarity</label>
+                                    <div class="star-rating" data-rating-for="clarity">
+                                        <input type="radio" id="clarity-5" name="rating-clarity" value="5" /><label for="clarity-5" title="5 stars">&#9733;</label>
+                                        <input type="radio" id="clarity-4" name="rating-clarity" value="4" /><label for="clarity-4" title="4 stars">&#9733;</label>
+                                        <input type="radio" id="clarity-3" name="rating-clarity" value="3" /><label for="clarity-3" title="3 stars">&#9733;</label>
+                                        <input type="radio" id="clarity-2" name="rating-clarity" value="2" /><label for="clarity-2" title="2 stars">&#9733;</label>
+                                        <input type="radio" id="clarity-1" name="rating-clarity" value="1" /><label for="clarity-1" title="1 star">&#9733;</label>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col sm:flex-row justify-between sm:items-center">
+                                    <label class="block text-base font-medium text-slate-600">Pacing</label>
+                                    <div class="star-rating" data-rating-for="pacing">
+                                        <input type="radio" id="pacing-5" name="rating-pacing" value="5" /><label for="pacing-5" title="5 stars">&#9733;</label>
+                                        <input type="radio" id="pacing-4" name="rating-pacing" value="4" /><label for="pacing-4" title="4 stars">&#9733;</label>
+                                        <input type="radio" id="pacing-3" name="rating-pacing" value="3" /><label for="pacing-3" title="3 stars">&#9733;</label>
+                                        <input type="radio" id="pacing-2" name="rating-pacing" value="2" /><label for="pacing-2" title="2 stars">&#9733;</label>
+                                        <input type="radio" id="pacing-1" name="rating-pacing" value="1" /><label for="pacing-1" title="1 star">&#9733;</label>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col sm:flex-row justify-between sm:items-center">
+                                    <label class="block text-base font-medium text-slate-600">Resources</label>
+                                    <div class="star-rating" data-rating-for="resources">
+                                        <input type="radio" id="resources-5" name="rating-resources" value="5" /><label for="resources-5" title="5 stars">&#9733;</label>
+                                        <input type="radio" id="resources-4" name="rating-resources" value="4" /><label for="resources-4" title="4 stars">&#9733;</label>
+                                        <input type="radio" id="resources-3" name="rating-resources" value="3" /><label for="resources-3" title="3 stars">&#9733;</label>
+                                        <input type="radio" id="resources-2" name="rating-resources" value="2" /><label for="resources-2" title="2 stars">&#9733;</label>
+                                        <input type="radio" id="resources-1" name="rating-resources" value="1" /><label for="resources-1" title="1 star">&#9733;</label>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col sm:flex-row justify-between sm:items-center">
+                                    <label class="block text-base font-medium text-slate-600">Support</label>
+                                    <div class="star-rating" data-rating-for="support">
+                                        <input type="radio" id="support-5" name="rating-support" value="5" /><label for="support-5" title="5 stars">&#9733;</label>
+                                        <input type="radio" id="support-4" name="rating-support" value="4" /><label for="support-4" title="4 stars">&#9733;</label>
+                                        <input type="radio" id="support-3" name="rating-support" value="3" /><label for="support-3" title="3 stars">&#9733;</label>
+                                        <input type="radio" id="support-2" name="rating-support" value="2" /><label for="support-2" title="2 stars">&#9733;</label>
+                                        <input type="radio" id="support-1" name="rating-support" value="1" /><label for="support-1" title="1 star">&#9733;</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="generalFieldsContainer" class="collapsible">
+                            <div class="section-card space-y-4">
+                                <p class="font-semibold text-slate-700">1. Context (optional)</p>
+                                <div>
+                                    <label for="contextField" id="contextLabel" class="block text-sm font-medium text-slate-600 mb-2">Relevant detail</label>
+                                    <input type="text" id="contextField" class="field" maxlength="255" placeholder="Add a brief detail if needed" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="feedbackText" class="block text-sm font-semibold text-slate-700 mb-2">
+                                <span id="feedback-text-label-number">2</span>. Feedback (required)
+                            </label>
+                            <textarea id="feedbackText" rows="6" class="field" maxlength="2000" placeholder="Share specific, constructive feedback..."></textarea>
+                        </div>
+
+                        <div class="section-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                            <div>
+                                <strong class="text-base text-slate-700">Anonymity control</strong>
+                                <p class="text-sm text-slate-500 mt-1">Share your name if you want, otherwise stay anonymous.</p>
+                            </div>
+                            <div id="shareNameToggleInner" class="toggle" role="switch" aria-checked="false">
+                                <span id="shareNameToggleKnobInner"></span>
+                            </div>
+                        </div>
+
+                        <button type="submit" id="submitBtnInner" class="btn btn-primary w-full">Submit feedback</button>
+                        <div id="submissionMessageInner" class="alert hidden" role="alert"></div>
+                    </form>
+                </div>
+            </section>
+        </main>
+    </div>
 
     <script>
         // --- CONSTANTS ---
         const API_SUBMIT_URL = "/api/submit_feedback";
         const API_TEACHERS_URL = "/api/teachers";
-        const CATEGORY_MAP = { 
+        const CATEGORY_MAP = {
             'teacher': 'Teacher Suggestions',
             'policy': 'Policy Suggestions',
             'food': 'Food Suggestions',
-            'equipment': 'General Services (GS)', 
+            'equipment': 'General Services (GS)',
             'school-buses': 'School Bus Service',
             'other': 'Other Suggestions',
-            'help': 'Reaching Out for Help' 
+            'help': 'Reaching Out for Help'
         };
         const YEAR_LEVEL_OPTIONS = ["Year 6", "Year 7", "Year 8"];
         const RATING_CATEGORIES = ['clarity', 'pacing', 'resources', 'support'];
@@ -382,92 +612,85 @@ Anywhere, Anytime, about Anything.</h2>
         // --- UTILITIES ---
         const showMessage = (message, type) => {
             submissionMessage.textContent = message;
-            submissionMessage.classList.remove('hidden', 'bg-green-600', 'bg-red-600', 'bg-yellow-600', 'bg-stuco-blue-600', 'text-white');
+            submissionMessage.classList.remove('hidden', 'alert-success', 'alert-error', 'alert-warning', 'alert-info');
+            submissionMessage.classList.add('alert');
             if (type === 'success') {
-                 submissionMessage.classList.add('bg-green-600', 'text-white');
+                submissionMessage.classList.add('alert-success');
             } else if (type === 'error') {
-                 submissionMessage.classList.add('bg-red-600', 'text-white');
+                submissionMessage.classList.add('alert-error');
             } else if (type === 'warning') {
-                submissionMessage.classList.add('bg-yellow-600', 'text-white');
-            } else if (type === 'info') {
-                 submissionMessage.classList.add('bg-stuco-blue-600', 'text-white');
+                submissionMessage.classList.add('alert-warning');
+            } else {
+                submissionMessage.classList.add('alert-info');
             }
             submissionMessage.classList.remove('hidden');
         };
 
         const updateShareNameToggle = () => {
-            shareNameToggleInner.classList.toggle('bg-stuco-purple', shareName);
-            shareNameToggleInner.classList.toggle('bg-gray-600', !shareName);
-            shareNameToggleKnobInner.classList.toggle('translate-x-6', shareName);
-            shareNameToggleKnobInner.classList.toggle('translate-x-1', !shareName);
+            shareNameToggleInner.classList.toggle('active', shareName);
+            shareNameToggleInner.setAttribute('aria-checked', shareName ? 'true' : 'false');
+        };
+
+        const setCollapsible = (element, isOpen) => {
+            element.classList.toggle('is-open', isOpen);
         };
 
         const getContextLabelText = (category) => {
             switch (category) {
-                case 'policy': return "Related Policy/Department (e.g., 'Uniform Policy', Academic Office)";
-                case 'food': return "Dining Hall Area or Specific Item (e.g., 'Upper School Hot Lunch')";
-                case 'equipment': return "Equipment/Location (e.g., 'Library Computers', Science Lab Goggles)";
-                case 'school-buses': return "Route/Bus Number or Time/Location (e.g., 'Route 4: Dalian Rd. Morning')";
-                default: return "Relevant Detail (Optional)";
+                case 'policy': return "Related policy or department (e.g., Uniform Policy)";
+                case 'food': return "Dining hall area or specific item";
+                case 'equipment': return "Equipment or location";
+                case 'school-buses': return "Route, bus number, or time";
+                default: return "Relevant detail (optional)";
             }
         };
-        
+
         // --- FORM STAGE CONTROL LOGIC ---
         const goToForm = (category) => {
             const isTeacher = category === 'teacher';
             const isGeneralContext = ['policy', 'food', 'equipment', 'other', 'school-buses', 'help'].includes(category);
-            
+
             homeScreen.classList.add('hidden-page');
             formContainer.classList.remove('hidden-page');
-            
+
             currentCategoryTitle.textContent = CATEGORY_MAP[category] || 'General Submission';
             selectedCategoryInput.value = category;
-            
-            teacherFieldsContainer.classList.toggle('max-h-96', isTeacher);
-            teacherFieldsContainer.classList.toggle('opacity-100', isTeacher);
-            teacherFieldsContainer.classList.toggle('max-h-0', !isTeacher);
-            teacherFieldsContainer.classList.toggle('opacity-0', !isTeacher);
+
+            setCollapsible(teacherFieldsContainer, isTeacher);
+            setCollapsible(teacherRatingsContainer, isTeacher);
+            setCollapsible(generalFieldsContainer, !isTeacher && isGeneralContext);
+
             yearLevelSelect.required = isTeacher;
             teacherSelect.required = isTeacher;
 
-            teacherRatingsContainer.classList.toggle('max-h-[500px]', isTeacher); 
-            teacherRatingsContainer.classList.toggle('opacity-100', isTeacher);
-            teacherRatingsContainer.classList.toggle('max-h-0', !isTeacher);
-            teacherRatingsContainer.classList.toggle('opacity-0', !isTeacher);
-
-            generalFieldsContainer.classList.toggle('max-h-96', !isTeacher && isGeneralContext);
-            generalFieldsContainer.classList.toggle('opacity-100', !isTeacher && isGeneralContext);
-            generalFieldsContainer.classList.toggle('max-h-0', isTeacher || !isGeneralContext);
-            generalFieldsContainer.classList.toggle('opacity-0', isTeacher || !isGeneralContext);
             contextLabel.textContent = getContextLabelText(category);
-            
             feedbackTextLabelNumber.textContent = isTeacher ? '3' : '2';
-            
+
             if (!isTeacher) {
                 yearLevelSelect.value = '';
                 teacherSelect.value = '';
-                teacherSelect.innerHTML = '<option value="" disabled selected>Select Teacher...</option>';
+                teacherSelect.innerHTML = '<option value="" disabled selected>Select teacher</option>';
                 teacherSelect.disabled = true;
-                resetStarRatings(); 
+                resetStarRatings();
             } else {
-                 contextField.value = ''; 
+                contextField.value = '';
             }
             feedbackText.value = '';
-            
+
             const urlParams = new URLSearchParams(window.location.search);
             const mockUser = urlParams.get('mock_user_id');
-            if(mockUser) {
+            if (mockUser) {
                 selectedCategoryInput.dataset.mockUser = mockUser;
             }
-            formContainer.scrollTop = 0; 
+            formContainer.scrollTop = 0;
         };
-        
+
         const goToHome = () => {
-             formContainer.classList.add('hidden-page');
-             homeScreen.classList.remove('hidden-page');
-             submissionMessage.classList.add('hidden');
-             form.reset();
-             resetStarRatings();
+            formContainer.classList.add('hidden-page');
+            homeScreen.classList.remove('hidden-page');
+            submissionMessage.classList.add('hidden');
+            form.reset();
+            resetStarRatings();
         };
 
         // --- DYNAMIC FORM FIELD LOGIC ---
@@ -476,17 +699,17 @@ Anywhere, Anytime, about Anything.</h2>
             teacherSelect.innerHTML = '<option value="" disabled selected>Loading...</option>';
             teacherSelect.disabled = true;
             if (!year) {
-                teacherSelect.innerHTML = '<option value="" disabled selected>Select Teacher...</option>';
+                teacherSelect.innerHTML = '<option value="" disabled selected>Select teacher</option>';
                 return;
             }
             try {
                 const response = await fetch(`${API_TEACHERS_URL}?year_level=${year}`);
                 if (!response.ok) throw new Error('Failed to fetch teachers');
                 const filtered = await response.json();
-                teacherSelect.innerHTML = '<option value="" disabled selected>Select Teacher...</option>';
+                teacherSelect.innerHTML = '<option value="" disabled selected>Select teacher</option>';
                 if (filtered.length === 0) {
-                     teacherSelect.innerHTML = '<option value="" disabled>No teachers found for this year</option>';
-                     return;
+                    teacherSelect.innerHTML = '<option value="" disabled>No teachers found</option>';
+                    return;
                 }
                 filtered.forEach(teacher => {
                     const option = document.createElement('option');
@@ -506,7 +729,7 @@ Anywhere, Anytime, about Anything.</h2>
             if (e.target.name && e.target.name.startsWith('rating-')) {
                 const category = e.target.name.replace('rating-', '');
                 const value = parseInt(e.target.value, 10);
-                
+
                 if (currentRatings[category] === value) {
                     e.target.checked = false;
                     currentRatings[category] = null;
@@ -515,7 +738,7 @@ Anywhere, Anytime, about Anything.</h2>
                 }
             }
         }
-        
+
         function resetStarRatings() {
             starRatingGroups.forEach(group => {
                 const radios = group.querySelectorAll('input[type="radio"]');
@@ -535,7 +758,7 @@ Anywhere, Anytime, about Anything.</h2>
             if (!category || !feedbackText.value) {
                 showMessage('Please select a category and enter your feedback.', 'error');
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Submit Feedback Securely';
+                submitBtn.textContent = 'Submit feedback';
                 return;
             }
 
@@ -544,28 +767,27 @@ Anywhere, Anytime, about Anything.</h2>
                 feedback_text: feedbackText.value,
                 willing_to_share_name: shareName
             };
-            
+
             if (category === 'teacher') {
                 if (!yearLevelSelect.value || !teacherSelect.value) {
                     showMessage('Please select a year level and teacher.', 'error');
                     submitBtn.disabled = false;
-                    submitBtn.textContent = 'Submit Feedback Securely';
+                    submitBtn.textContent = 'Submit feedback';
                     return;
                 }
-                payload.teacher_id = parseInt(teacherSelect.value);
+                payload.teacher_id = parseInt(teacherSelect.value, 10);
                 payload.year_level = yearLevelSelect.value;
 
                 if (currentRatings.clarity) payload.rating_clarity = currentRatings.clarity;
                 if (currentRatings.pacing) payload.rating_pacing = currentRatings.pacing;
                 if (currentRatings.resources) payload.rating_resources = currentRatings.resources;
                 if (currentRatings.support) payload.rating_support = currentRatings.support;
-
             } else {
                 payload.year_level = yearLevelSelect.value || 'N/A';
             }
-            
+
             if (contextField.value.trim()) {
-                 payload.context_detail = contextField.value.trim(); 
+                payload.context_detail = contextField.value.trim();
             }
 
             let apiUrl = API_SUBMIT_URL;
@@ -573,7 +795,7 @@ Anywhere, Anytime, about Anything.</h2>
             if (mockUser) {
                 apiUrl += `?mock_user_id=${mockUser}`;
             }
- 
+
             try {
                 const response = await fetch(apiUrl, {
                     method: 'POST',
@@ -585,31 +807,31 @@ Anywhere, Anytime, about Anything.</h2>
                 if (response.ok) {
                     let successMessage = `Success! Feedback ID ${result.id} submitted.`;
                     if (result.status === 'Screened - Escalation') {
-                         successMessage = `WARNING: Your submission (ID: ${result.id}) was flagged by AI as inappropriate. It has been submitted directly to the STUCO Safeguarding Queue.`;
-                         showMessage(successMessage, 'warning');
+                        successMessage = `Warning: Your submission (ID: ${result.id}) was flagged by AI. It has been routed to STUCO for review.`;
+                        showMessage(successMessage, 'warning');
                     } else {
-                         showMessage(successMessage, 'success');
+                        showMessage(successMessage, 'success');
                     }
-                    
+
                     form.reset();
                     shareName = false;
                     updateShareNameToggle();
                     contextField.value = '';
                     resetStarRatings();
-                    
-                    setTimeout(goToHome, 2500); 
+
+                    setTimeout(goToHome, 2000);
                 } else {
-                    showMessage(`Submission Error: ${result.error || response.statusText}.`, 'error');
+                    showMessage(`Submission error: ${result.error || response.statusText}.`, 'error');
                 }
             } catch (error) {
                 console.error('Network Error during Submission:', error);
-                showMessage('Network Error: Could not connect to the server.', 'error');
+                showMessage('Network error: Could not connect to the server.', 'error');
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Submit Feedback Securely';
+                submitBtn.textContent = 'Submit feedback';
             }
         };
-        
+
         // --- INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', () => {
             YEAR_LEVEL_OPTIONS.forEach(yl => {
@@ -630,10 +852,10 @@ Anywhere, Anytime, about Anything.</h2>
                 shareName = !shareName;
                 updateShareNameToggle();
             });
-            
+
             teacherRatingsContainer.addEventListener('click', handleStarClick);
-            
-            updateShareNameToggle(); 
+
+            updateShareNameToggle();
         });
     </script>
 </body>
