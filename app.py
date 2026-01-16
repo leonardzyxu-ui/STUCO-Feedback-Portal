@@ -3,19 +3,20 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-from functools import wraps 
-import time
+from functools import wraps
 import json
-import threading 
-import random 
+import re
+import threading
+import random
 import atexit
 from collections import defaultdict
+from typing import Any
 
-import requests 
-from flask import Flask, jsonify, request, g, redirect, url_for, send_file, render_template
+import requests
+from flask import Flask, jsonify, request, g, render_template
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import text, func
+from sqlalchemy import func
 
 # --- Config ---
 BASE_DIR = Path(__file__).resolve().parent
@@ -28,15 +29,20 @@ load_dotenv(dotenv_path=BASE_DIR / '.env')
 DATABASE_FILE = 'feedback.db' 
 DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY') 
 DEEPSEEK_MODEL = "deepseek-chat"
-DEEPSEEK_API_URL = "https.api.deepseek.com/chat/completions"
+DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions"
 # Set to True for real AI summaries, False for fast, generic placeholders
 DEEPTHINK_OR_NOT = False 
 # Worker thread sleep interval (seconds). 10s for demo, 60s for production.
 WORKER_SLEEP_INTERVAL = 10 
 # ======================================================================
 
-if not DEEPSEEK_API_KEY:
-    exit("FATAL ERROR: 'DEEPSEEK_API_KEY' is missing from .env. The application cannot run.")
+USE_REAL_DEEPSEEK = bool(DEEPSEEK_API_KEY)
+USE_REAL_SUMMARIES = DEEPTHINK_OR_NOT and USE_REAL_DEEPSEEK
+
+if DEEPTHINK_OR_NOT and not USE_REAL_DEEPSEEK:
+    raise SystemExit("FATAL ERROR: 'DEEPSEEK_API_KEY' is required when DEEPTHINK_OR_NOT=True.")
+if not USE_REAL_DEEPSEEK:
+    print("WARNING: 'DEEPSEEK_API_KEY' missing. Using mock toxicity checks and summaries.")
 
 # --- App Configuration ---
 app = Flask(__name__, static_folder=BASE_DIR, static_url_path='/static', template_folder=BASE_DIR)
@@ -50,7 +56,14 @@ CORS(app)
 # --- Database Models (V2.0 FINAL) ---
 # ======================================================================
 
-class User(db.Model):
+class BaseModel(db.Model):
+    __abstract__ = True
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+
+
+class User(BaseModel):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     azure_oid = db.Column(db.String(128), unique=True, nullable=False) 
@@ -58,7 +71,7 @@ class User(db.Model):
     name = db.Column(db.String(120), nullable=True) 
     role = db.Column(db.String(50), nullable=False)
     
-class Teacher(db.Model):
+class Teacher(BaseModel):
     __tablename__ = 'teachers'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=True)
@@ -68,7 +81,7 @@ class Teacher(db.Model):
     year_7 = db.Column(db.Boolean, default=False)
     year_8 = db.Column(db.Boolean, default=False)
 
-class Feedback(db.Model):
+class Feedback(BaseModel):
     __tablename__ = 'feedback'
     id = db.Column(db.Integer, primary_key=True)
     teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id'), nullable=True) 
@@ -88,7 +101,7 @@ class Feedback(db.Model):
     rating_resources = db.Column(db.Integer, nullable=True)
     rating_support = db.Column(db.Integer, nullable=True)
 
-class TeacherSummary(db.Model):
+class TeacherSummary(BaseModel):
     __tablename__ = 'teacher_summary'
     teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id'), primary_key=True)
     latest_positive_summary = db.Column(db.Text, nullable=True)
@@ -97,7 +110,7 @@ class TeacherSummary(db.Model):
     raw_positive_bullets = db.Column(db.JSON, nullable=True)
     raw_actionable_bullets = db.Column(db.JSON, nullable=True)
 
-class ClarificationRequest(db.Model):
+class ClarificationRequest(BaseModel):
     __tablename__ = 'clarification_requests'
     id = db.Column(db.Integer, primary_key=True)
     teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id'), nullable=False)
@@ -107,7 +120,7 @@ class ClarificationRequest(db.Model):
     status = db.Column(db.String(50), default='pending') # 'pending', 'resolved'
     admin_reply = db.Column(db.Text, nullable=True)
 
-class SummaryJobQueue(db.Model):
+class SummaryJobQueue(BaseModel):
     __tablename__ = 'summary_job_queue'
     job_id = db.Column(db.Integer, primary_key=True)
     job_type = db.Column(db.String(50), nullable=False) # 'teacher' or 'category'
@@ -118,12 +131,14 @@ class SummaryJobQueue(db.Model):
     created_at = db.Column(db.DateTime, default=db.func.now())
     updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
 
-class CategorySummary(db.Model):
+class CategorySummary(BaseModel):
     __tablename__ = 'category_summary'
     category_name = db.Column(db.String(50), primary_key=True) # 'food', 'policy', etc.
     latest_positive_summary = db.Column(db.Text, nullable=True)
     latest_actionable_summary = db.Column(db.Text, nullable=True)
     last_updated = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
+    raw_positive_bullets = db.Column(db.JSON, nullable=True)
+    raw_actionable_bullets = db.Column(db.JSON, nullable=True)
 
 # ======================================================================
 # --- Utility Functions & Auth ---
@@ -133,15 +148,22 @@ def auth_required(role=None):
     def wrapper(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            mock_user_id = request.args.get('mock_user_id', 1) 
-            g.user = db.session.get(User, int(mock_user_id))
-            if not g.user: return jsonify({"error": "Authentication required."}), 401
-            if role and g.user.role != role: return jsonify({"error": f"Access denied. Required role: {role}"}), 403
+            try:
+                mock_user_id = int(request.args.get('mock_user_id', 1))
+            except (TypeError, ValueError):
+                return jsonify({"error": "Invalid mock_user_id."}), 400
+            g.user = db.session.get(User, mock_user_id)
+            if not g.user:
+                return jsonify({"error": "Authentication required."}), 401
+            if role and g.user.role != role:
+                return jsonify({"error": f"Access denied. Required role: {role}"}), 403
             if g.user.role in ['teacher', 'stuco_admin']:
                 g.teacher_profile = Teacher.query.filter_by(user_id=g.user.id).first()
                 if not g.teacher_profile:
-                    if g.user.role == 'stuco_admin': g.teacher_profile = None 
-                    else: return jsonify({"error": "Teacher profile not found."}), 403
+                    if g.user.role == 'stuco_admin':
+                        g.teacher_profile = None 
+                    else:
+                        return jsonify({"error": "Teacher profile not found."}), 403
             return f(*args, **kwargs)
         return decorated_function
     return wrapper
@@ -203,6 +225,40 @@ def run_real_deepseek_toxicity_check(text_input):
         print(f"CRITICAL TOXICITY CHECK ERROR: {e}. Defaulting to 'inappropriate'.")
         return {'toxicity_score': 1.0, 'is_inappropriate': True}
 
+MOCK_TOXICITY_REGEXES = [
+    re.compile(pattern)
+    for pattern in [
+        r"\bfuck\b",
+        r"\bshit\b",
+        r"\bbitch\b",
+        r"\bass\b",
+        r"\bdamn\b",
+        r"\bidiot\b",
+        r"\bstupid\b",
+        r"\bterrible teacher\b",
+        r"\bhorrible person\b",
+        r"\bworst teacher\b",
+        r"\bbully\b",
+        r"\bbullying\b",
+        r"\bthreat\b",
+        r"\bkill\b",
+    ]
+]
+
+def run_mock_toxicity_check(text_input):
+    """
+    Lightweight local moderation fallback for demo mode (no API key).
+    """
+    text_lower = text_input.lower()
+    is_inappropriate = any(regex.search(text_lower) for regex in MOCK_TOXICITY_REGEXES)
+    toxicity_score = 0.95 if is_inappropriate else 0.0
+    return {'toxicity_score': toxicity_score, 'is_inappropriate': is_inappropriate}
+
+def run_toxicity_check(text_input):
+    if USE_REAL_DEEPSEEK:
+        return run_real_deepseek_toxicity_check(text_input)
+    return run_mock_toxicity_check(text_input)
+
 def generate_mock_summary(target_id, summary_type='teacher'):
     """
     This is the privacy-safe 'Fast Demo Mode' summary generator.
@@ -226,18 +282,26 @@ def generate_mock_summary(target_id, summary_type='teacher'):
     else:
         summary_entry = db.session.get(CategorySummary, target_id)
 
-    if summary_entry and getattr(summary_entry, 'raw_positive_bullets', None):
-        positive_bullets = summary_entry.raw_positive_bullets
-        actionable_bullets = summary_entry.raw_actionable_bullets
+    if summary_entry:
+        positive_bullets = list(summary_entry.raw_positive_bullets or [])
+        actionable_bullets = list(summary_entry.raw_actionable_bullets or [])
     else:
+        positive_bullets = []
+        actionable_bullets = []
+
+    if not positive_bullets:
         positive_bullets = [random.choice(MOCK_POSITIVES)]
+    if not actionable_bullets:
         actionable_bullets = [random.choice(MOCK_ACTIONABLES)]
+
     if random.choice([True, False]):
         new_pos = random.choice(MOCK_POSITIVES)
-        if new_pos not in positive_bullets: positive_bullets.append(new_pos)
+        if new_pos not in positive_bullets:
+            positive_bullets.append(new_pos)
     else:
         new_act = random.choice(MOCK_ACTIONABLES)
-        if new_act not in actionable_bullets: actionable_bullets.append(new_act)
+        if new_act not in actionable_bullets:
+            actionable_bullets.append(new_act)
     
     positive_summary_html = "<ul>" + "".join(f"<li>{item}</li>" for item in positive_bullets) + "</ul>"
     actionable_summary_html = "<ul>" + "".join(f"<li>{item}</li>" for item in actionable_bullets) + "</ul>"
@@ -254,7 +318,9 @@ def generate_mock_summary(target_id, summary_type='teacher'):
         new_summary_entry = CategorySummary(
             category_name=target_id,
             latest_positive_summary=positive_summary_html,
-            latest_actionable_summary=actionable_summary_html
+            latest_actionable_summary=actionable_summary_html,
+            raw_positive_bullets=positive_bullets,
+            raw_actionable_bullets=actionable_bullets
         )
 
     db.session.merge(new_summary_entry)
@@ -267,8 +333,8 @@ def run_deepseek_summary(target_id):
     This is the REAL, SLOW, SMART AI summary engine for TEACHERS.
     """
     teacher_id = int(target_id)
-    if not DEEPTHINK_OR_NOT:
-        print("INFO: DEEPTHINK_OR_NOT=False. Running MOCK teacher summary.")
+    if not USE_REAL_SUMMARIES:
+        print("INFO: Real summaries disabled. Running MOCK teacher summary.")
         generate_mock_summary(teacher_id, 'teacher')
         return 
     
@@ -276,8 +342,8 @@ def run_deepseek_summary(target_id):
     
     past_feedback = Feedback.query.filter(
         Feedback.teacher_id == teacher_id,
-        Feedback.is_inappropriate == False,
-        Feedback.is_summary_approved == True 
+        Feedback.is_inappropriate.is_(False),
+        Feedback.is_summary_approved.is_(True)
     ).all()
     
     feedback_entries = [f.feedback_text for f in past_feedback]
@@ -352,8 +418,8 @@ def run_deepseek_category_summary(target_id):
     This is the REAL, SLOW, SMART AI summary engine for CATEGORIES (e.g., 'food').
     """
     category_name = target_id
-    if not DEEPTHINK_OR_NOT:
-        print(f"INFO: DEEPTHINK_OR_NOT=False. Running MOCK category summary for '{category_name}'.")
+    if not USE_REAL_SUMMARIES:
+        print(f"INFO: Real summaries disabled. Running MOCK category summary for '{category_name}'.")
         generate_mock_summary(category_name, 'category')
         return 
     
@@ -361,8 +427,8 @@ def run_deepseek_category_summary(target_id):
     
     past_feedback = Feedback.query.filter(
         Feedback.category == category_name,
-        Feedback.is_inappropriate == False,
-        Feedback.is_summary_approved == True 
+        Feedback.is_inappropriate.is_(False),
+        Feedback.is_summary_approved.is_(True)
     ).all()
     
     feedback_entries = [f.feedback_text for f in past_feedback]
@@ -372,7 +438,9 @@ def run_deepseek_category_summary(target_id):
         summary_entry = CategorySummary(
             category_name=category_name,
             latest_positive_summary="<ul><li>No feedback available.</li></ul>",
-            latest_actionable_summary="<ul><li>No feedback available.</li></ul>"
+            latest_actionable_summary="<ul><li>No feedback available.</li></ul>",
+            raw_positive_bullets=[],
+            raw_actionable_bullets=[]
         )
         db.session.merge(summary_entry)
         db.session.commit()
@@ -420,7 +488,9 @@ def run_deepseek_category_summary(target_id):
         summary_entry = CategorySummary(
             category_name=category_name,
             latest_positive_summary=positive_summary_html,
-            latest_actionable_summary=actionable_summary_html
+            latest_actionable_summary=actionable_summary_html,
+            raw_positive_bullets=positive_bullets,
+            raw_actionable_bullets=actionable_bullets
         )
         db.session.merge(summary_entry)
         db.session.commit()
@@ -491,6 +561,19 @@ def summary_worker_thread(flask_app):
 
     print("WORKER: Background worker thread shutting down.")
 
+def is_thread_alive(thread):
+    return thread is not None and thread.is_alive()
+
+def start_worker_thread():
+    global worker_thread
+    if is_thread_alive(worker_thread):
+        return False
+    stop_worker_event.clear()
+    worker_thread = threading.Thread(target=summary_worker_thread, args=(app,))
+    worker_thread.daemon = True
+    worker_thread.start()
+    return True
+
 # ======================================================================
 # --- V2.0 Seeding (Now includes Ratings & Clarifications) ---
 # ======================================================================
@@ -523,7 +606,7 @@ def seed_data():
     db.session.commit()
     
     for feedback_item in db.session.query(Feedback).filter(Feedback.status == 'New').all():
-        screening = run_real_deepseek_toxicity_check(feedback_item.feedback_text)
+        screening = run_toxicity_check(feedback_item.feedback_text)
         feedback_item.toxicity_score = screening['toxicity_score']
         feedback_item.is_inappropriate = screening['is_inappropriate']
         
@@ -574,16 +657,22 @@ def stuco_admin_dashboard():
 def get_teachers():
     year_level = request.args.get('year_level') 
     query = Teacher.query
-    if year_level == 'Year 6': query = query.filter(Teacher.year_6 == True)
-    elif year_level == 'Year 7': query = query.filter(Teacher.year_7 == True)
-    elif year_level == 'Year 8': query = query.filter(Teacher.year_8 == True)
+    if year_level == 'Year 6':
+        query = query.filter(Teacher.year_6.is_(True))
+    elif year_level == 'Year 7':
+        query = query.filter(Teacher.year_7.is_(True))
+    elif year_level == 'Year 8':
+        query = query.filter(Teacher.year_8.is_(True))
     teachers_list = [{'id': t.id, 'name': t.name, 'email': t.email} for t in query.all()]
     return jsonify(teachers_list)
 
 @app.route('/api/submit_feedback', methods=['POST'])
 @auth_required(role='student')
 def submit_feedback():
-    data = request.json
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({'error': 'Invalid or missing JSON body.'}), 400
+
     feedback_text = data.get('feedback_text')
     category = data.get('category')
     teacher_id = data.get('teacher_id')
@@ -594,12 +683,18 @@ def submit_feedback():
         return jsonify({'error': 'Missing required fields.'}), 400
     
     teacher_id_int = None
-    if category == 'teacher' and teacher_id:
-        try: teacher_id_int = int(teacher_id)
-        except ValueError: return jsonify({'error': 'Invalid teacher ID format.'}), 400
+    if category == 'teacher':
+        if not teacher_id:
+            return jsonify({'error': 'Teacher feedback requires a teacher_id.'}), 400
+        try:
+            teacher_id_int = int(teacher_id)
+        except ValueError:
+            return jsonify({'error': 'Invalid teacher ID format.'}), 400
+        if not db.session.get(Teacher, teacher_id_int):
+            return jsonify({'error': 'Teacher not found.'}), 400
     
     try:
-        screening = run_real_deepseek_toxicity_check(feedback_text)
+        screening = run_toxicity_check(feedback_text)
         is_inappropriate = screening['is_inappropriate']
         
         new_feedback = Feedback(
@@ -656,7 +751,7 @@ def get_teacher_stats():
     total_feedback = Feedback.query.filter(Feedback.teacher_id == teacher_id).count()
     approved_count = Feedback.query.filter(
         Feedback.teacher_id == teacher_id, 
-        Feedback.is_summary_approved == True
+        Feedback.is_summary_approved.is_(True)
     ).count()
     
     trend_query = db.session.query(
@@ -666,9 +761,9 @@ def get_teacher_stats():
         func.coalesce(func.avg(Feedback.rating_support), 0)
     ).filter(
         Feedback.teacher_id == teacher_id,
-        Feedback.is_inappropriate == False,
-        Feedback.is_summary_approved == True
-    ).one() 
+        Feedback.is_inappropriate.is_(False),
+        Feedback.is_summary_approved.is_(True)
+    ).one()
 
     trend_data_list = [
         round(trend_query[0], 1), # Pacing
@@ -712,7 +807,9 @@ def get_teacher_holistic_summary():
 @app.route('/api/clarification_request', methods=['POST'])
 @auth_required(role='teacher')
 def create_clarification_request():
-    data = request.json
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({'error': 'Invalid or missing JSON body.'}), 400
     question_text = data.get('question_text')
     if not question_text:
         return jsonify({'error': 'Clarification question text is required.'}), 400
@@ -823,7 +920,8 @@ def get_category_summaries():
 @auth_required(role='stuco_admin')
 def approve_feedback_summary(feedback_id):
     feedback_item = db.session.get(Feedback, feedback_id)
-    if not feedback_item: return jsonify({'error': 'Feedback not found.'}), 404
+    if not feedback_item:
+        return jsonify({'error': 'Feedback not found.'}), 404
     feedback_item.is_summary_approved = True
     feedback_item.status = 'Approved'
     
@@ -839,7 +937,8 @@ def approve_feedback_summary(feedback_id):
 @auth_required(role='stuco_admin')
 def retract_feedback_summary(feedback_id):
     feedback_item = db.session.get(Feedback, feedback_id)
-    if not feedback_item: return jsonify({'error': 'Feedback not found.'}), 404
+    if not feedback_item:
+        return jsonify({'error': 'Feedback not found.'}), 404
     feedback_item.is_summary_approved = False
     feedback_item.status = 'Retracted by Admin'
 
@@ -904,7 +1003,9 @@ def get_clarification_queue():
 @app.route('/api/admin/clarification/<int:request_id>/reply', methods=['POST'])
 @auth_required(role='stuco_admin')
 def reply_to_clarification(request_id):
-    data = request.json
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({'error': 'Invalid or missing JSON body.'}), 400
     reply_text = data.get('reply_text')
     
     if not reply_text:
@@ -927,13 +1028,12 @@ def reply_to_clarification(request_id):
 @app.route('/api/admin/reset_database', methods=['POST'])
 @auth_required(role='stuco_admin')
 def reset_database():
-    global worker_thread
     try:
         print("INFO: Admin triggered database reset.")
         
         print("WORKER: Sending stop signal...")
         stop_worker_event.set()
-        if worker_thread.is_alive():
+        if is_thread_alive(worker_thread):
             worker_thread.join()
         print("WORKER: Worker thread stopped.")
 
@@ -945,11 +1045,7 @@ def reset_database():
         
     finally:
         # --- FIX #1: Ensure worker *always* restarts ---
-        if not worker_thread.is_alive():
-            stop_worker_event.clear()
-            worker_thread = threading.Thread(target=summary_worker_thread, args=(app,))
-            worker_thread.daemon = True
-            worker_thread.start()
+        if start_worker_thread():
             print("WORKER: Worker thread has been restarted.")
             
     return jsonify({'message': 'Database has been successfully reset.'}), 200
@@ -963,14 +1059,12 @@ if __name__ == '__main__':
         seed_data()
     
     print("MAIN: Starting background worker thread...")
-    worker_thread = threading.Thread(target=summary_worker_thread, args=(app,))
-    worker_thread.daemon = True 
-    worker_thread.start()
+    start_worker_thread()
     
     def stop_worker():
         print("MAIN: Shutting down worker thread...")
         stop_worker_event.set()
-        if worker_thread.is_alive():
+        if is_thread_alive(worker_thread):
             worker_thread.join()
     atexit.register(stop_worker)
         
