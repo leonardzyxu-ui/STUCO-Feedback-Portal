@@ -31,3 +31,13 @@ def teacher_dashboard():
 @bp.route("/stuco_admin_dashboard.html", methods=["GET"])
 def stuco_admin_dashboard():
     return render_template("stuco_admin_dashboard.html")
+
+
+@bp.route("/documentation.html", methods=["GET"])
+def documentation_page():
+    return render_template("documentation.html")
+
+
+@bp.route("/monthly_digest.html", methods=["GET"])
+def monthly_digest_page():
+    return render_template("monthly_digest.html")

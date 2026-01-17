@@ -1,11 +1,12 @@
 import html as html_lib
 import random
 import re
+from datetime import date, datetime, timedelta
 
 from flask import current_app
 
 from ...extensions import db
-from ...models import CategorySummary, Feedback, TeacherSummary
+from ...models import CategorySummary, Feedback, MonthlyDigest, TeacherSummary
 from .providers import AIProviderError, get_provider, parse_json_response
 
 BULLET_REGEX = re.compile(r"<li>(.*?)</li>", re.IGNORECASE | re.DOTALL)
@@ -274,4 +275,139 @@ def run_category_summary(target_id, provider=None):
     except AIProviderError as exc:
         db.session.rollback()
         print(f"CRITICAL AI ERROR (Category Summary): {exc}")
+        raise
+
+
+def month_key_for_date(target_date):
+    return f"{target_date.year:04d}-{target_date.month:02d}"
+
+
+def get_month_date_range(target_date):
+    start_date = date(target_date.year, target_date.month, 1)
+    next_month = (start_date.replace(day=28) + timedelta(days=4)).replace(day=1)
+    end_date = next_month - timedelta(days=1)
+    return start_date, end_date
+
+
+def is_last_day_of_month(target_date):
+    _, end_date = get_month_date_range(target_date)
+    return target_date == end_date
+
+
+def generate_mock_monthly_digest(month_key, feedback_count):
+    print(f"MOCK SUMMARY: Generating monthly digest for {month_key}.")
+    mock_positives = [
+        "Students appreciated clearer assignment expectations.",
+        "Positive feedback highlighted supportive classroom environments.",
+        "Class discussions felt more engaging this month.",
+        "Students recognized improved feedback turnaround times.",
+    ]
+    mock_actionables = [
+        "Continue improving pacing for complex units.",
+        "Provide more practice examples before assessments.",
+        "Add reminders for upcoming deadlines in class.",
+        "Expand access to supplemental study materials.",
+    ]
+    positive_bullets = [random.choice(mock_positives)]
+    actionable_bullets = [random.choice(mock_actionables)]
+    if feedback_count > 3:
+        positive_bullets.append(random.choice(mock_positives))
+    if feedback_count > 5:
+        actionable_bullets.append(random.choice(mock_actionables))
+    return positive_bullets, actionable_bullets
+
+
+def run_monthly_digest(target_date=None, provider=None):
+    target_date = target_date or date.today()
+    month_key = month_key_for_date(target_date)
+    existing = db.session.get(MonthlyDigest, month_key)
+    if existing:
+        return existing
+
+    start_date, end_date = get_month_date_range(target_date)
+    start_dt = datetime.combine(start_date, datetime.min.time())
+    end_dt = datetime.combine(end_date, datetime.max.time())
+
+    feedback_entries = (
+        Feedback.query.filter(
+            Feedback.created_at >= start_dt,
+            Feedback.created_at <= end_dt,
+            Feedback.is_inappropriate.is_(False),
+            Feedback.is_summary_approved.is_(True),
+        )
+        .order_by(Feedback.created_at)
+        .all()
+    )
+    feedback_texts = [item.feedback_text for item in feedback_entries]
+    feedback_count = len(feedback_texts)
+
+    if not feedback_texts:
+        summary_entry = MonthlyDigest(
+            month_key=month_key,
+            start_date=start_date,
+            end_date=end_date,
+            positive_bullets=["No approved feedback was submitted this month."],
+            actionable_bullets=["Encourage students to submit feedback before month end."],
+            feedback_count=0,
+        )
+        db.session.merge(summary_entry)
+        db.session.commit()
+        return summary_entry
+
+    provider = provider or get_provider()
+    deepthink = current_app.config.get("DEEPTHINK_OR_NOT", False)
+    if not deepthink or not provider.is_configured():
+        positive_bullets, actionable_bullets = generate_mock_monthly_digest(
+            month_key, feedback_count
+        )
+        summary_entry = MonthlyDigest(
+            month_key=month_key,
+            start_date=start_date,
+            end_date=end_date,
+            positive_bullets=positive_bullets,
+            actionable_bullets=actionable_bullets,
+            feedback_count=feedback_count,
+        )
+        db.session.merge(summary_entry)
+        db.session.commit()
+        return summary_entry
+
+    combined_text = "\n---\n".join(feedback_texts)
+
+    system_prompt = (
+        "You are an expert educational analyst. Summarize approved, anonymous student feedback "
+        "into a monthly digest for STUCO leaders. Respond ONLY with a valid JSON object with "
+        "exactly two keys: 'positive_highlights' and 'actionable_growth'. Each key must contain "
+        "a list (array) of concise bullet strings. Avoid naming individual students or teachers. "
+        "Keep the list focused and use plain language. Do not use markdown."
+    )
+    user_prompt = (
+        f"Monthly feedback window: {start_date.isoformat()} to {end_date.isoformat()}.\n\n"
+        f"Feedback entries:\n{combined_text}"
+    )
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
+
+    try:
+        content = provider.chat(messages, response_format={"type": "json_object"})
+        summary_json = parse_json_response(content)
+        positive_bullets = _normalize_bullets(summary_json.get("positive_highlights", []))
+        actionable_bullets = _normalize_bullets(summary_json.get("actionable_growth", []))
+        summary_entry = MonthlyDigest(
+            month_key=month_key,
+            start_date=start_date,
+            end_date=end_date,
+            positive_bullets=positive_bullets,
+            actionable_bullets=actionable_bullets,
+            feedback_count=feedback_count,
+        )
+        db.session.merge(summary_entry)
+        db.session.commit()
+        return summary_entry
+    except AIProviderError as exc:
+        db.session.rollback()
+        print(f"CRITICAL AI ERROR (Monthly Digest): {exc}")
         raise

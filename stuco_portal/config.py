@@ -49,6 +49,9 @@ class AppConfig:
     mcp_host: str
     mcp_port: int
     mcp_require_auth: bool
+    session_cookie_secure: bool
+    session_cookie_samesite: str
+    session_cookie_httponly: bool
 
     @classmethod
     def from_env(cls):
@@ -90,6 +93,9 @@ class AppConfig:
             mcp_host=os.getenv("MCP_HOST", "127.0.0.1"),
             mcp_port=int(os.getenv("MCP_PORT", "5002")),
             mcp_require_auth=_env_bool("MCP_REQUIRE_AUTH", True),
+            session_cookie_secure=_env_bool("SESSION_COOKIE_SECURE", False),
+            session_cookie_samesite=os.getenv("SESSION_COOKIE_SAMESITE", "Lax"),
+            session_cookie_httponly=_env_bool("SESSION_COOKIE_HTTPONLY", True),
         )
 
     def to_flask_config(self):
@@ -126,4 +132,7 @@ class AppConfig:
             "MCP_HOST": self.mcp_host,
             "MCP_PORT": self.mcp_port,
             "MCP_REQUIRE_AUTH": self.mcp_require_auth,
+            "SESSION_COOKIE_SECURE": self.session_cookie_secure,
+            "SESSION_COOKIE_SAMESITE": self.session_cookie_samesite,
+            "SESSION_COOKIE_HTTPONLY": self.session_cookie_httponly,
         }

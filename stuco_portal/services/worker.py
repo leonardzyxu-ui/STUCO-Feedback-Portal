@@ -1,9 +1,16 @@
 import threading
 from collections import defaultdict
+from datetime import date
 
 from ..extensions import db
-from ..models import SummaryJobQueue
-from .ai.summaries import run_category_summary, run_teacher_summary
+from ..models import MonthlyDigest, SummaryJobQueue
+from .ai.summaries import (
+    is_last_day_of_month,
+    month_key_for_date,
+    run_category_summary,
+    run_monthly_digest,
+    run_teacher_summary,
+)
 
 worker_thread = None
 worker_started = False
@@ -21,6 +28,16 @@ def summary_worker_thread(flask_app):
                     .order_by(SummaryJobQueue.created_at)
                     .all()
                 )
+
+                if is_last_day_of_month(date.today()):
+                    month_key = month_key_for_date(date.today())
+                    if not db.session.get(MonthlyDigest, month_key):
+                        try:
+                            run_monthly_digest(date.today())
+                            print(f"WORKER: Monthly digest generated for {month_key}.")
+                        except Exception as exc:
+                            db.session.rollback()
+                            print(f"WORKER: Monthly digest generation failed: {exc}")
 
                 if not pending_jobs:
                     stop_worker_event.wait(flask_app.config.get("WORKER_SLEEP_INTERVAL", 10))

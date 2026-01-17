@@ -97,6 +97,17 @@ class CategorySummary(BaseModel):
     raw_actionable_bullets = db.Column(db.JSON, nullable=True)
 
 
+class MonthlyDigest(BaseModel):
+    __tablename__ = "monthly_digests"
+    month_key = db.Column(db.String(7), primary_key=True)
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+    generated_at = db.Column(db.DateTime, default=db.func.now())
+    positive_bullets = db.Column(db.JSON, nullable=True)
+    actionable_bullets = db.Column(db.JSON, nullable=True)
+    feedback_count = db.Column(db.Integer, default=0)
+
+
 class Category(BaseModel):
     __tablename__ = "categories"
     id = db.Column(db.Integer, primary_key=True)
