@@ -11,8 +11,10 @@ A Flask-based feedback platform for Student Council (STUCO) to collect anonymous
 - Student submissions across multiple categories (teacher, food, policy, equipment/GS, school buses, other, help)
 - Optional teacher-specific ratings (clarity, pacing, resources, support)
 - Optional contextual detail field for non-teacher categories
-- Real-time toxicity screening with DeepSeek (or local mock screening when no API key)
-- AI summaries for teachers and non-teacher categories (DeepSeek or mock mode)
+- Real-time toxicity screening with DeepSeek V3.2 (or local mock screening when no API key)
+- AI summaries for teachers and non-teacher categories (DeepSeek/OpenAI/Gemini or mock mode)
+- Multimodal AI endpoint (text + images) for admin workflows
+- Dedicated MCP server for agent integrations (resources + tools)
 - Teacher clarification workflow (request/resolve through admin)
 - Admin moderation queue with approve/retract/delete actions
 - Background summary worker with job batching to avoid redundant AI calls
@@ -22,7 +24,8 @@ A Flask-based feedback platform for Student Council (STUCO) to collect anonymous
 - Backend: Flask, Flask-SQLAlchemy, Flask-CORS
 - Database: SQLite (or any SQLAlchemy-supported database via `DATABASE_URL`)
 - Frontend: Tailwind CSS (CDN), vanilla JavaScript, Chart.js
-- AI: DeepSeek API for toxicity and summarization
+- AI: DeepSeek V3.2, OpenAI gpt-5.2, Gemini gemini-3-pro-preview
+- MCP: Optional MCP server for agent access
 
 ## Quick Start
 1. Create a virtual environment and install dependencies:
@@ -34,6 +37,8 @@ A Flask-based feedback platform for Student Council (STUCO) to collect anonymous
 2. (Optional) Create a `.env` with:
    ```bash
    DEEPSEEK_API_KEY=your_key_here
+   OPENAI_API_KEY=your_key_here
+   GEMINI_API_KEY=your_key_here
    SECRET_KEY=your_secret
    TEACHER_INVITE_CODE=teacher-code
    ADMIN_INVITE_CODE=admin-code
@@ -41,6 +46,10 @@ A Flask-based feedback platform for Student Council (STUCO) to collect anonymous
 3. Run the server:
    ```bash
    python3 app.py
+   ```
+4. (Optional) Run the MCP server:
+   ```bash
+   python3 mcp_server.py
    ```
 
 The app auto-opens the student portal in your browser. Default port is `5001`.
@@ -54,13 +63,25 @@ These can be set as environment variables:
 - `ENABLE_WORKER`: set to `0` or `false` to disable the background worker
 - `DATABASE_URL`: override the database connection string
 - `DEEPSEEK_API_KEY`: enables real toxicity checks and summaries
+- `OPENAI_API_KEY`: enables OpenAI (gpt-5.2) summaries and multimodal chat
+- `GEMINI_API_KEY`: enables Gemini (gemini-3-pro-preview) summaries and multimodal chat
+- `AI_PROVIDER`: `deepseek` (default), `openai`, or `gemini`
+- `DEEPSEEK_MODEL`: default `deepseek-v3.2`
+- `OPENAI_MODEL`: default `gpt-5.2`
+- `GEMINI_MODEL`: default `gemini-3-pro-preview`
+- `AI_TIMEOUT`: request timeout in seconds (default `60`)
+- `AI_MAX_TOKENS`: max tokens for AI responses (default `800`)
 - `STUDENT_SIGNUP_ENABLED`: set to `0` to disable student self-signup
 - `TEACHER_INVITE_CODE`: invite code required for teacher accounts
 - `ADMIN_INVITE_CODE`: invite code required for STUCO admin accounts
 - `ALLOW_MOCK_AUTH`: set to `0` to disable mock_user_id shortcuts
+- `MCP_API_KEY`: shared key for MCP server auth
+- `MCP_HOST`: MCP server bind address (default `127.0.0.1`)
+- `MCP_PORT`: MCP server port (default `5002`)
+- `MCP_REQUIRE_AUTH`: set to `0` to disable MCP auth
 - `DEMO_STUDENT_PASSWORD`, `DEMO_TEACHER_PASSWORD`, `DEMO_ADMIN_PASSWORD`: override seeded demo passwords
 
-In `app.py`, you can also tweak:
+You can also set:
 - `DEEPTHINK_OR_NOT`: enable real AI summaries
 - `WORKER_SLEEP_INTERVAL`: background worker interval
 
@@ -90,11 +111,15 @@ You can still use mock auth by appending `?mock_user_id=1/2/3` when `ALLOW_MOCK_
 
 ## AI Behavior
 - Toxicity screening runs on every submission.
-- In demo mode (no `DEEPSEEK_API_KEY`), local mock checks and summaries are used.
+- In demo mode (no provider API key), local mock checks and summaries are used.
+- `AI_PROVIDER` selects DeepSeek/OpenAI/Gemini for summaries and moderation.
 - Approved feedback triggers a summary job; jobs are batched by target.
 
 ## Project Structure
-- `app.py`: Flask app, models, AI logic, background worker
+- `app.py`: thin entrypoint for the Flask app
+- `stuco_portal/`: app package (config, models, routes, services)
+- `mcp_server.py`: MCP server entrypoint for agent integrations
+- `stuco_portal/agents/`: starter AI agent scaffolding
 - `home.html`: public landing page
 - `auth.html`: login/signup
 - `stu_frontend.html`: student feedback hub
