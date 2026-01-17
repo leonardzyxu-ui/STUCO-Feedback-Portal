@@ -231,6 +231,14 @@
                     </div>
 
                     <div class="card">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-lg font-semibold">Announcements</h2>
+                            <button id="refreshTeacherAnnouncements" class="toggle-btn">Refresh</button>
+                        </div>
+                        <div id="teacher-announcement-container" class="space-y-3"></div>
+                    </div>
+
+                    <div class="card">
                         <h2 class="text-lg font-semibold mb-2">Teaching practice trends</h2>
                         <p class="text-sm text-slate-500 mb-4">Average student ratings on a 1 to 5 scale.</p>
                         <div class="w-full h-72">
@@ -291,6 +299,7 @@
         const API_SUMMARY_URL = "/api/teacher/holistic_summary";
         const API_CLARIFICATION_URL = "/api/clarification_request";
         const API_TEACHER_CLARIFICATIONS_URL = "/api/teacher/clarifications";
+        const API_ANNOUNCEMENTS = "/api/announcements";
         const API_AUTH_ME = "/api/auth/me";
         const API_AUTH_LOGOUT = "/api/auth/logout";
 
@@ -317,6 +326,8 @@
         const teacherClarificationContainer = document.getElementById('teacher-clarification-container');
         const teacherUser = document.getElementById('teacherUser');
         const logoutBtn = document.getElementById('logoutBtn');
+        const teacherAnnouncementContainer = document.getElementById('teacher-announcement-container');
+        const refreshTeacherAnnouncements = document.getElementById('refreshTeacherAnnouncements');
 
         // --- UTILITIES ---
         const getAuthQuery = () => {
@@ -461,6 +472,31 @@
             }
         };
 
+        const fetchTeacherAnnouncements = async () => {
+            try {
+                teacherAnnouncementContainer.innerHTML = '<p class="text-slate-500 text-sm">Loading announcements...</p>';
+                const response = await fetch(`${API_ANNOUNCEMENTS}?audience=teacher&limit=4`);
+                if (!response.ok) throw new Error('Failed to load announcements');
+                const items = await response.json();
+                if (!items.length) {
+                    teacherAnnouncementContainer.innerHTML = '<p class="text-slate-500 text-sm">No announcements yet.</p>';
+                    return;
+                }
+                teacherAnnouncementContainer.innerHTML = items.map(item => `
+                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                        <div class="flex items-center justify-between gap-3 flex-wrap">
+                            <h3 class="text-base font-semibold text-slate-800">${escapeHtml(item.title)}</h3>
+                            <span class="text-xs text-slate-500">${new Date(item.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <p class="text-sm text-slate-600 mt-2 whitespace-pre-wrap">${escapeHtml(item.body)}</p>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error("Error fetching announcements:", error);
+                teacherAnnouncementContainer.innerHTML = '<p class="text-red-500 text-sm">Announcements unavailable.</p>';
+            }
+        };
+
         const renderTeacherClarificationItem = (req, status) => {
             const isPending = (status === 'pending');
             return `
@@ -586,6 +622,7 @@
             const allowed = await ensureTeacherAccess();
             if (!allowed) return;
             loadAllData();
+            fetchTeacherAnnouncements();
             clarificationBtn.addEventListener('click', () => {
                 clarificationTextarea.value = '';
                 modalMessage.textContent = '';
@@ -597,6 +634,7 @@
 
             teacherClarificationPendingBtn.addEventListener('click', () => fetchTeacherClarifications('pending'));
             teacherClarificationResolvedBtn.addEventListener('click', () => fetchTeacherClarifications('resolved'));
+            refreshTeacherAnnouncements.addEventListener('click', fetchTeacherAnnouncements);
 
             logoutBtn.addEventListener('click', async () => {
                 const urlParams = new URLSearchParams(window.location.search);

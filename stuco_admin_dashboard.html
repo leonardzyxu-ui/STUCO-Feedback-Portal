@@ -128,6 +128,23 @@
             background: var(--surface-soft);
         }
 
+        .input-field {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 0.55rem 0.8rem;
+            background: var(--surface-soft);
+            width: 100%;
+        }
+
+        .textarea-field {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 0.6rem 0.9rem;
+            background: var(--surface-soft);
+            width: 100%;
+            min-height: 120px;
+        }
+
         .site-header {
             background: rgba(255, 255, 255, 0.85);
             border-bottom: 1px solid var(--border);
@@ -197,6 +214,8 @@
             <nav class="flex -mb-px space-x-4" aria-label="Tabs">
                 <button id="tab-btn-moderation" class="tab-btn active" data-tab="moderation">Moderation</button>
                 <button id="tab-btn-analytics" class="tab-btn" data-tab="analytics">General analytics</button>
+                <button id="tab-btn-config" class="tab-btn" data-tab="config">Configuration</button>
+                <button id="tab-btn-audit" class="tab-btn" data-tab="audit">Audit log</button>
             </nav>
         </div>
 
@@ -256,6 +275,134 @@
                 <div id="analytics-container" class="grid grid-cols-1 lg:grid-cols-2 gap-6"></div>
             </div>
         </div>
+
+        <div id="tab-content-config" class="tab-content">
+            <div class="card mb-8">
+                <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+                    <h2 class="text-xl font-semibold">Category manager</h2>
+                    <button id="refreshCategoriesBtn" class="action-btn secondary">Refresh list</button>
+                </div>
+                <form id="categoryForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-sm font-semibold text-slate-600">Title</label>
+                        <input id="categoryTitle" type="text" class="input-field" placeholder="Category title">
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold text-slate-600">Slug</label>
+                        <input id="categorySlug" type="text" class="input-field" placeholder="category-slug">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="text-sm font-semibold text-slate-600">Description</label>
+                        <input id="categoryDescription" type="text" class="input-field" placeholder="Short description">
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold text-slate-600">Context label</label>
+                        <input id="categoryContextLabel" type="text" class="input-field" placeholder="Label for optional context field">
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold text-slate-600">Icon key</label>
+                        <input id="categoryIcon" type="text" class="input-field" placeholder="teacher, food, policy...">
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold text-slate-600">Sort order</label>
+                        <input id="categorySortOrder" type="number" class="input-field" value="0">
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <label class="text-sm font-semibold text-slate-600">
+                            <input id="categoryRequiresTeacher" type="checkbox"> Requires teacher
+                        </label>
+                        <label class="text-sm font-semibold text-slate-600">
+                            <input id="categoryActive" type="checkbox" checked> Active
+                        </label>
+                    </div>
+                    <div class="md:col-span-2 flex justify-end">
+                        <button id="createCategoryBtn" class="action-btn primary" type="submit">Create category</button>
+                    </div>
+                </form>
+                <div id="categoryList" class="space-y-4 mt-6"></div>
+            </div>
+
+            <div class="card mb-8">
+                <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+                    <h2 class="text-xl font-semibold">Announcements</h2>
+                    <button id="refreshAnnouncementsBtn" class="action-btn secondary">Refresh list</button>
+                </div>
+                <form id="announcementForm" class="space-y-4">
+                    <input id="announcementId" type="hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm font-semibold text-slate-600">Title</label>
+                            <input id="announcementTitle" type="text" class="input-field" placeholder="Announcement title">
+                        </div>
+                        <div>
+                            <label class="text-sm font-semibold text-slate-600">Audience</label>
+                            <select id="announcementAudience" class="select-field w-full">
+                                <option value="all">All</option>
+                                <option value="student">Students</option>
+                                <option value="teacher">Teachers</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold text-slate-600">Body</label>
+                        <textarea id="announcementBody" class="textarea-field" placeholder="Announcement details"></textarea>
+                    </div>
+                    <label class="text-sm font-semibold text-slate-600">
+                        <input id="announcementActive" type="checkbox" checked> Active
+                    </label>
+                    <div class="flex items-center justify-end gap-2">
+                        <button id="clearAnnouncementBtn" class="action-btn secondary" type="button">Clear</button>
+                        <button id="saveAnnouncementBtn" class="action-btn primary" type="submit">Save announcement</button>
+                    </div>
+                </form>
+                <div id="announcementList" class="space-y-4 mt-6"></div>
+            </div>
+
+            <div class="card">
+                <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+                    <h2 class="text-xl font-semibold">Teacher roster</h2>
+                    <button id="refreshTeachersBtn" class="action-btn secondary">Refresh roster</button>
+                </div>
+                <form id="teacherForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-sm font-semibold text-slate-600">Name</label>
+                        <input id="teacherName" type="text" class="input-field" placeholder="Teacher name">
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold text-slate-600">Email</label>
+                        <input id="teacherEmail" type="email" class="input-field" placeholder="name@school.org">
+                    </div>
+                    <div class="md:col-span-2 flex flex-wrap gap-4">
+                        <label class="text-sm font-semibold text-slate-600">
+                            <input id="teacherYear6" type="checkbox"> Year 6
+                        </label>
+                        <label class="text-sm font-semibold text-slate-600">
+                            <input id="teacherYear7" type="checkbox"> Year 7
+                        </label>
+                        <label class="text-sm font-semibold text-slate-600">
+                            <input id="teacherYear8" type="checkbox"> Year 8
+                        </label>
+                        <label class="text-sm font-semibold text-slate-600">
+                            <input id="teacherActive" type="checkbox" checked> Active
+                        </label>
+                    </div>
+                    <div class="md:col-span-2 flex justify-end">
+                        <button id="createTeacherBtn" class="action-btn primary" type="submit">Add teacher</button>
+                    </div>
+                </form>
+                <div id="teacherList" class="space-y-4 mt-6"></div>
+            </div>
+        </div>
+
+        <div id="tab-content-audit" class="tab-content">
+            <div class="card">
+                <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+                    <h2 class="text-xl font-semibold">Audit log</h2>
+                    <button id="refreshAuditBtn" class="action-btn secondary">Refresh</button>
+                </div>
+                <div id="auditLogList" class="space-y-3"></div>
+            </div>
+        </div>
     </main>
 
     <div id="summary-modal" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4 hidden">
@@ -275,19 +422,29 @@
         const API_RESET_DB = "/api/admin/reset_database";
         const API_CATEGORY_SUMMARIES = "/api/admin/category_summaries";
         const API_CLARIFICATION_REPLY_BASE = "/api/admin/clarification/";
+        const API_ADMIN_CATEGORIES = "/api/admin/categories";
+        const API_ADMIN_TEACHERS = "/api/admin/teachers";
+        const API_ADMIN_ANNOUNCEMENTS = "/api/admin/announcements";
+        const API_AUDIT_LOGS = "/api/admin/audit_logs";
         const API_AUTH_ME = "/api/auth/me";
         const API_AUTH_LOGOUT = "/api/auth/logout";
 
-        const TEACHERS_LIST = [
-            { id: 1, name: "Mr. Harper" }, { id: 2, name: "Ms. Williams" },
-            { id: 3, name: "Ms. Chen (Admin)" },
-        ];
-        const ALL_CATEGORIES = ['all', 'teacher', 'policy', 'food', 'equipment', 'school-buses', 'other', 'help'];
         const ALL_STATUSES = ['Approved', 'Retracted by Admin', 'Screened - Escalation', 'New'];
+        let categoryCache = [];
+        let announcementCache = [];
+        let teacherCache = [];
 
         // --- DOM Elements Cache ---
         const DOM = Object.fromEntries(
-            ['queueContainer', 'clarificationQueueContainer', 'statusFilter', 'categoryFilter', 'teacherSelect', 'pendingReview', 'pendingClarifications', 'clarificationPendingBtn', 'clarificationResolvedBtn', 'resetDatabaseBtn', 'tab-btn-moderation', 'tab-btn-analytics', 'tab-content-moderation', 'tab-content-analytics', 'analytics-container', 'analytics-loading', 'adminUser', 'logoutBtn']
+            [
+                'queueContainer', 'clarificationQueueContainer', 'statusFilter', 'categoryFilter',
+                'pendingReview', 'pendingClarifications', 'clarificationPendingBtn', 'clarificationResolvedBtn',
+                'resetDatabaseBtn', 'tab-btn-moderation', 'tab-btn-analytics', 'tab-btn-config', 'tab-btn-audit',
+                'tab-content-moderation', 'tab-content-analytics', 'tab-content-config', 'tab-content-audit',
+                'analytics-container', 'analytics-loading', 'adminUser', 'logoutBtn', 'refreshCategoriesBtn',
+                'categoryForm', 'categoryList', 'refreshAnnouncementsBtn', 'announcementForm', 'announcementList',
+                'refreshTeachersBtn', 'teacherForm', 'teacherList', 'auditLogList', 'refreshAuditBtn'
+            ]
             .map(id => [id, document.getElementById(id)])
         );
 
@@ -316,7 +473,8 @@
             let cardClass = 'border-l-4 border-blue-500';
             if (isFlagged) cardClass = 'border-l-8 border-red-500 bg-red-50/80';
             if (isRetracted) cardClass = 'border-l-4 border-slate-400 bg-slate-100 opacity-80';
-            const teacherContext = item.category === 'teacher' ? `For: ${escapeHtml(item.teacher_name)}` : `Context: ${escapeHtml(item.category)}`;
+            const categoryLabel = item.category_title || item.category;
+            const teacherContext = item.category === 'teacher' ? `For: ${escapeHtml(item.teacher_name)}` : `Context: ${escapeHtml(categoryLabel)}`;
             const contextDetail = item.context_detail ? `<span class="chip">${escapeHtml(item.context_detail)}</span>` : '';
             let actionButton = '';
             if (item.status === 'Approved') {
@@ -330,7 +488,7 @@
                 <div id="item-${item.id}" class="bg-white p-5 rounded-2xl shadow-md ${cardClass}">
                     <div class="flex justify-between items-start mb-3">
                         <div>
-                            <span class="text-xs uppercase tracking-[0.25em] text-slate-400">${escapeHtml(item.category)} (ID: ${item.id})</span>
+                            <span class="text-xs uppercase tracking-[0.25em] text-slate-400">${escapeHtml(categoryLabel)} (ID: ${item.id})</span>
                             <p class="text-lg font-semibold">${teacherContext}</p>
                         </div>
                         <span class="text-sm font-semibold text-slate-700 px-2 py-1 rounded-md bg-slate-100">${escapeHtml(item.status)}</span>
@@ -387,9 +545,10 @@
         };
 
         const renderCategorySummaryItem = (item) => {
+            const displayName = item.category_title || item.category_name;
             return `
             <div class="bg-white p-5 rounded-2xl shadow-md border border-slate-200">
-                <h3 class="text-xl font-semibold text-slate-900 capitalize">${escapeHtml(item.category_name)}</h3>
+                <h3 class="text-xl font-semibold text-slate-900 capitalize">${escapeHtml(displayName)}</h3>
                 <p class="text-xs text-slate-500 mb-4">Last updated: ${new Date(item.last_updated).toLocaleString()}</p>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 summary-bullets">
                     <div class="bg-green-50/80 p-3 rounded-lg border-l-4 border-green-400">
@@ -402,6 +561,113 @@
                     </div>
                 </div>
             </div>`;
+        };
+
+        const renderCategoryRow = (category) => `
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 category-item" data-category-id="${category.id}">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-sm font-semibold text-slate-600">Slug</label>
+                        <input class="input-field" value="${escapeHtml(category.slug)}" disabled>
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold text-slate-600">Title</label>
+                        <input class="input-field category-input" data-field="title" value="${escapeHtml(category.title)}">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="text-sm font-semibold text-slate-600">Description</label>
+                        <input class="input-field category-input" data-field="description" value="${escapeHtml(category.description || '')}">
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold text-slate-600">Context label</label>
+                        <input class="input-field category-input" data-field="context_label" value="${escapeHtml(category.context_label || '')}">
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold text-slate-600">Icon key</label>
+                        <input class="input-field category-input" data-field="icon" value="${escapeHtml(category.icon || '')}">
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold text-slate-600">Sort order</label>
+                        <input type="number" class="input-field category-input" data-field="sort_order" value="${category.sort_order || 0}">
+                    </div>
+                    <div class="flex flex-wrap items-center gap-4">
+                        <label class="text-sm font-semibold text-slate-600">
+                            <input type="checkbox" class="category-input" data-field="requires_teacher" ${category.requires_teacher ? 'checked' : ''}> Requires teacher
+                        </label>
+                        <label class="text-sm font-semibold text-slate-600">
+                            <input type="checkbox" class="category-input" data-field="is_active" ${category.is_active ? 'checked' : ''}> Active
+                        </label>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 mt-4">
+                    <button class="action-btn secondary" data-action="save-category">Save</button>
+                    <button class="action-btn warn" data-action="delete-category">Delete</button>
+                </div>
+            </div>`;
+
+        const renderAnnouncementRow = (announcement) => `
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 announcement-item" data-announcement-id="${announcement.id}">
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                    <div>
+                        <h3 class="text-lg font-semibold text-slate-900">${escapeHtml(announcement.title)}</h3>
+                        <p class="text-xs text-slate-500">Audience: ${escapeHtml(announcement.audience)} - ${announcement.is_active ? 'Active' : 'Inactive'}</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="action-btn secondary" data-action="edit-announcement">Edit</button>
+                        <button class="action-btn primary" data-action="toggle-announcement">${announcement.is_active ? 'Deactivate' : 'Activate'}</button>
+                        <button class="action-btn warn" data-action="delete-announcement">Delete</button>
+                    </div>
+                </div>
+                <p class="text-sm text-slate-600 mt-3 whitespace-pre-wrap">${escapeHtml(announcement.body)}</p>
+            </div>`;
+
+        const renderTeacherRow = (teacher) => `
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 teacher-item" data-teacher-id="${teacher.id}">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-sm font-semibold text-slate-600">Name</label>
+                        <input class="input-field teacher-input" data-field="name" value="${escapeHtml(teacher.name)}">
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold text-slate-600">Email</label>
+                        <input class="input-field teacher-input" data-field="email" value="${escapeHtml(teacher.email)}">
+                    </div>
+                    <div class="md:col-span-2 flex flex-wrap gap-4">
+                        <label class="text-sm font-semibold text-slate-600">
+                            <input type="checkbox" class="teacher-input" data-field="year_6" ${teacher.year_6 ? 'checked' : ''}> Year 6
+                        </label>
+                        <label class="text-sm font-semibold text-slate-600">
+                            <input type="checkbox" class="teacher-input" data-field="year_7" ${teacher.year_7 ? 'checked' : ''}> Year 7
+                        </label>
+                        <label class="text-sm font-semibold text-slate-600">
+                            <input type="checkbox" class="teacher-input" data-field="year_8" ${teacher.year_8 ? 'checked' : ''}> Year 8
+                        </label>
+                        <label class="text-sm font-semibold text-slate-600">
+                            <input type="checkbox" class="teacher-input" data-field="is_active" ${teacher.is_active ? 'checked' : ''}> Active
+                        </label>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="text-sm font-semibold text-slate-600">Link to user email (optional)</label>
+                        <input class="input-field teacher-input" data-field="user_email" value="${escapeHtml(teacher.user_email || '')}" placeholder="teacher@school.org">
+                    </div>
+                </div>
+                <div class="flex justify-end mt-4">
+                    <button class="action-btn secondary" data-action="save-teacher">Save</button>
+                </div>
+            </div>`;
+
+        const renderAuditLogItem = (log) => {
+            const timestamp = log.created_at ? new Date(log.created_at).toLocaleString() : 'Recent';
+            return `
+                <div class="bg-white p-3 rounded-xl border border-slate-200">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <p class="text-sm font-semibold text-slate-700">${escapeHtml(log.action)}</p>
+                        <span class="text-xs text-slate-500">${escapeHtml(timestamp)}</span>
+                    </div>
+                    <p class="text-xs text-slate-500">Actor: ${escapeHtml(log.actor_name || log.actor_user_id || 'n/a')} - Target: ${escapeHtml(log.target_type || 'n/a')} - ${escapeHtml(log.target_id || 'n/a')}</p>
+                    ${log.details ? `<pre class="text-xs text-slate-600 mt-2 whitespace-pre-wrap">${escapeHtml(JSON.stringify(log.details, null, 2))}</pre>` : ''}
+                </div>
+            `;
         };
 
         // --- ASYNC & STATE LOGIC ---
@@ -449,7 +715,7 @@
 
         async function fetchModerationQueue() {
             const status = DOM.statusFilter.value;
-            const category = DOM.categoryFilter.value;
+            const category = DOM.categoryFilter.value || 'all';
             const url = new URL(window.location.origin + API_MOD_QUEUE);
             url.searchParams.append('status', status);
             url.searchParams.append('category', category);
@@ -518,6 +784,312 @@
             } finally {
                 DOM.analyticsLoading.classList.add('hidden');
                 DOM.analyticsContainer.classList.remove('hidden');
+            }
+        }
+
+        async function fetchAdminCategories() {
+            const url = API_ADMIN_CATEGORIES + getAuthQuery();
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                categoryCache = await response.json();
+                const currentValue = DOM.categoryFilter.value || 'all';
+                const categoryOptions = [{ value: 'all', label: 'all' }, ...categoryCache.map(item => ({ value: item.slug, label: item.title }))];
+                DOM.categoryFilter.innerHTML = categoryOptions.map(option => `<option value="${option.value}">${escapeHtml(option.label)}</option>`).join('');
+                DOM.categoryFilter.value = categoryOptions.some(option => option.value === currentValue) ? currentValue : 'all';
+
+                DOM.categoryList.innerHTML = categoryCache.length
+                    ? categoryCache.map(renderCategoryRow).join('')
+                    : '<div class="text-slate-500 text-sm text-center">No categories created yet.</div>';
+            } catch (error) {
+                console.error("Error fetching categories:", error);
+                DOM.categoryList.innerHTML = `<div class="text-red-500 text-sm">Error loading categories.</div>`;
+            }
+        }
+
+        async function fetchAdminAnnouncements() {
+            const url = API_ADMIN_ANNOUNCEMENTS + getAuthQuery();
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                announcementCache = await response.json();
+                DOM.announcementList.innerHTML = announcementCache.length
+                    ? announcementCache.map(renderAnnouncementRow).join('')
+                    : '<div class="text-slate-500 text-sm text-center">No announcements yet.</div>';
+            } catch (error) {
+                console.error("Error fetching announcements:", error);
+                DOM.announcementList.innerHTML = `<div class="text-red-500 text-sm">Error loading announcements.</div>`;
+            }
+        }
+
+        async function fetchAdminTeachers() {
+            const url = API_ADMIN_TEACHERS + getAuthQuery();
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                teacherCache = await response.json();
+                DOM.teacherList.innerHTML = teacherCache.length
+                    ? teacherCache.map(renderTeacherRow).join('')
+                    : '<div class="text-slate-500 text-sm text-center">No teachers added yet.</div>';
+            } catch (error) {
+                console.error("Error fetching teachers:", error);
+                DOM.teacherList.innerHTML = `<div class="text-red-500 text-sm">Error loading teachers.</div>`;
+            }
+        }
+
+        async function fetchAuditLogs() {
+            const url = API_AUDIT_LOGS + getAuthQuery();
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                const logs = await response.json();
+                DOM.auditLogList.innerHTML = logs.length
+                    ? logs.map(renderAuditLogItem).join('')
+                    : '<div class="text-slate-500 text-sm text-center">No audit logs yet.</div>';
+            } catch (error) {
+                console.error("Error fetching audit logs:", error);
+                DOM.auditLogList.innerHTML = `<div class="text-red-500 text-sm">Error loading audit log.</div>`;
+            }
+        }
+
+        async function handleCategoryCreate(e) {
+            e.preventDefault();
+            const payload = {
+                title: document.getElementById('categoryTitle').value.trim(),
+                slug: document.getElementById('categorySlug').value.trim(),
+                description: document.getElementById('categoryDescription').value.trim(),
+                context_label: document.getElementById('categoryContextLabel').value.trim(),
+                icon: document.getElementById('categoryIcon').value.trim(),
+                sort_order: parseInt(document.getElementById('categorySortOrder').value || '0', 10),
+                requires_teacher: document.getElementById('categoryRequiresTeacher').checked,
+                is_active: document.getElementById('categoryActive').checked
+            };
+            if (!payload.title || !payload.slug) {
+                alert('Title and slug are required.');
+                return;
+            }
+            try {
+                const response = await fetch(API_ADMIN_CATEGORIES + getAuthQuery(), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) {
+                    const result = await response.json();
+                    throw new Error(result.error || 'Failed to create category');
+                }
+                DOM.categoryForm.reset();
+                document.getElementById('categoryActive').checked = true;
+                await fetchAdminCategories();
+            } catch (error) {
+                alert(`Category error: ${error.message}`);
+            }
+        }
+
+        async function handleCategoryAction(e) {
+            const target = e.target.closest('button[data-action]');
+            if (!target) return;
+            const action = target.dataset.action;
+            const wrapper = target.closest('.category-item');
+            if (!wrapper) return;
+            const categoryId = wrapper.dataset.categoryId;
+
+            if (action === 'delete-category') {
+                if (!window.confirm('Delete this category?')) return;
+                try {
+                    const response = await fetch(`${API_ADMIN_CATEGORIES}/${categoryId}${getAuthQuery()}`, { method: 'DELETE' });
+                    if (!response.ok) {
+                        const result = await response.json();
+                        throw new Error(result.error || 'Delete failed');
+                    }
+                    fetchAdminCategories();
+                } catch (error) {
+                    alert(`Delete failed: ${error.message}`);
+                }
+                return;
+            }
+
+            if (action === 'save-category') {
+                const inputs = wrapper.querySelectorAll('.category-input');
+                const payload = {};
+                inputs.forEach(input => {
+                    const field = input.dataset.field;
+                    if (!field) return;
+                    if (input.type === 'checkbox') {
+                        payload[field] = input.checked;
+                    } else if (input.type === 'number') {
+                        payload[field] = parseInt(input.value || '0', 10);
+                    } else {
+                        payload[field] = input.value.trim();
+                    }
+                });
+                try {
+                    const response = await fetch(`${API_ADMIN_CATEGORIES}/${categoryId}${getAuthQuery()}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) {
+                        const result = await response.json();
+                        throw new Error(result.error || 'Save failed');
+                    }
+                    fetchAdminCategories();
+                } catch (error) {
+                    alert(`Save failed: ${error.message}`);
+                }
+            }
+        }
+
+        async function handleAnnouncementSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('announcementId').value;
+            const payload = {
+                title: document.getElementById('announcementTitle').value.trim(),
+                body: document.getElementById('announcementBody').value.trim(),
+                audience: document.getElementById('announcementAudience').value,
+                is_active: document.getElementById('announcementActive').checked
+            };
+            if (!payload.title || !payload.body) {
+                alert('Title and body are required.');
+                return;
+            }
+            const endpoint = id ? `${API_ADMIN_ANNOUNCEMENTS}/${id}${getAuthQuery()}` : API_ADMIN_ANNOUNCEMENTS + getAuthQuery();
+            const method = id ? 'PUT' : 'POST';
+            try {
+                const response = await fetch(endpoint, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) {
+                    const result = await response.json();
+                    throw new Error(result.error || 'Save failed');
+                }
+                document.getElementById('announcementId').value = '';
+                DOM.announcementForm.reset();
+                document.getElementById('announcementActive').checked = true;
+                fetchAdminAnnouncements();
+            } catch (error) {
+                alert(`Announcement error: ${error.message}`);
+            }
+        }
+
+        function populateAnnouncementForm(item) {
+            document.getElementById('announcementId').value = item.id;
+            document.getElementById('announcementTitle').value = item.title;
+            document.getElementById('announcementBody').value = item.body;
+            document.getElementById('announcementAudience').value = item.audience;
+            document.getElementById('announcementActive').checked = item.is_active;
+        }
+
+        async function handleAnnouncementAction(e) {
+            const target = e.target.closest('button[data-action]');
+            if (!target) return;
+            const action = target.dataset.action;
+            const wrapper = target.closest('.announcement-item');
+            if (!wrapper) return;
+            const announcementId = wrapper.dataset.announcementId;
+            const item = announcementCache.find(entry => String(entry.id) === String(announcementId));
+
+            if (action === 'edit-announcement' && item) {
+                populateAnnouncementForm(item);
+                return;
+            }
+
+            if (action === 'toggle-announcement' && item) {
+                const payload = { is_active: !item.is_active };
+                try {
+                    const response = await fetch(`${API_ADMIN_ANNOUNCEMENTS}/${announcementId}${getAuthQuery()}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error('Toggle failed');
+                    fetchAdminAnnouncements();
+                } catch (error) {
+                    alert(`Toggle failed: ${error.message}`);
+                }
+                return;
+            }
+
+            if (action === 'delete-announcement') {
+                if (!window.confirm('Delete this announcement?')) return;
+                try {
+                    const response = await fetch(`${API_ADMIN_ANNOUNCEMENTS}/${announcementId}${getAuthQuery()}`, { method: 'DELETE' });
+                    if (!response.ok) throw new Error('Delete failed');
+                    fetchAdminAnnouncements();
+                } catch (error) {
+                    alert(`Delete failed: ${error.message}`);
+                }
+            }
+        }
+
+        async function handleTeacherCreate(e) {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('teacherName').value.trim(),
+                email: document.getElementById('teacherEmail').value.trim(),
+                year_6: document.getElementById('teacherYear6').checked,
+                year_7: document.getElementById('teacherYear7').checked,
+                year_8: document.getElementById('teacherYear8').checked,
+                is_active: document.getElementById('teacherActive').checked
+            };
+            if (!payload.name || !payload.email) {
+                alert('Name and email are required.');
+                return;
+            }
+            try {
+                const response = await fetch(API_ADMIN_TEACHERS + getAuthQuery(), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) {
+                    const result = await response.json();
+                    throw new Error(result.error || 'Teacher create failed');
+                }
+                DOM.teacherForm.reset();
+                document.getElementById('teacherActive').checked = true;
+                fetchAdminTeachers();
+                fetchAdminCategories();
+            } catch (error) {
+                alert(`Teacher error: ${error.message}`);
+            }
+        }
+
+        async function handleTeacherAction(e) {
+            const target = e.target.closest('button[data-action]');
+            if (!target) return;
+            const wrapper = target.closest('.teacher-item');
+            if (!wrapper) return;
+            const teacherId = wrapper.dataset.teacherId;
+
+            if (target.dataset.action === 'save-teacher') {
+                const inputs = wrapper.querySelectorAll('.teacher-input');
+                const payload = {};
+                inputs.forEach(input => {
+                    const field = input.dataset.field;
+                    if (!field) return;
+                    if (input.type === 'checkbox') {
+                        payload[field] = input.checked;
+                    } else {
+                        payload[field] = input.value.trim();
+                    }
+                });
+                try {
+                    const response = await fetch(`${API_ADMIN_TEACHERS}/${teacherId}${getAuthQuery()}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) {
+                        const result = await response.json();
+                        throw new Error(result.error || 'Save failed');
+                    }
+                    fetchAdminTeachers();
+                } catch (error) {
+                    alert(`Save failed: ${error.message}`);
+                }
             }
         }
 
@@ -613,7 +1185,7 @@
 
         function initFilters() {
             DOM.statusFilter.innerHTML = ALL_STATUSES.map(status => `<option value="${status}">${status}</option>`).join('');
-            DOM.categoryFilter.innerHTML = ALL_CATEGORIES.map(category => `<option value="${category}">${category}</option>`).join('');
+            fetchAdminCategories();
         }
 
         function initTabs() {
@@ -630,6 +1202,12 @@
 
                     if (activeTab === 'analytics') {
                         fetchCategorySummaries();
+                    } else if (activeTab === 'config') {
+                        fetchAdminCategories();
+                        fetchAdminAnnouncements();
+                        fetchAdminTeachers();
+                    } else if (activeTab === 'audit') {
+                        fetchAuditLogs();
                     }
                 });
             });
@@ -652,6 +1230,25 @@
             DOM.clarificationPendingBtn.addEventListener('click', () => fetchClarificationQueue('pending'));
             DOM.clarificationResolvedBtn.addEventListener('click', () => fetchClarificationQueue('resolved'));
             DOM.resetDatabaseBtn.addEventListener('click', handleResetDatabase);
+            if (DOM.categoryForm) DOM.categoryForm.addEventListener('submit', handleCategoryCreate);
+            if (DOM.categoryList) DOM.categoryList.addEventListener('click', handleCategoryAction);
+            if (DOM.refreshCategoriesBtn) DOM.refreshCategoriesBtn.addEventListener('click', fetchAdminCategories);
+            if (DOM.announcementForm) DOM.announcementForm.addEventListener('submit', handleAnnouncementSubmit);
+            if (DOM.announcementList) DOM.announcementList.addEventListener('click', handleAnnouncementAction);
+            if (DOM.refreshAnnouncementsBtn) DOM.refreshAnnouncementsBtn.addEventListener('click', fetchAdminAnnouncements);
+            if (DOM.teacherForm) DOM.teacherForm.addEventListener('submit', handleTeacherCreate);
+            if (DOM.teacherList) DOM.teacherList.addEventListener('click', handleTeacherAction);
+            if (DOM.refreshTeachersBtn) DOM.refreshTeachersBtn.addEventListener('click', fetchAdminTeachers);
+            if (DOM.refreshAuditBtn) DOM.refreshAuditBtn.addEventListener('click', fetchAuditLogs);
+
+            const clearAnnouncementBtn = document.getElementById('clearAnnouncementBtn');
+            if (clearAnnouncementBtn) {
+                clearAnnouncementBtn.addEventListener('click', () => {
+                    document.getElementById('announcementId').value = '';
+                    DOM.announcementForm.reset();
+                    document.getElementById('announcementActive').checked = true;
+                });
+            }
             DOM.logoutBtn.addEventListener('click', async () => {
                 const urlParams = new URLSearchParams(window.location.search);
                 if (urlParams.get('mock_user_id')) {

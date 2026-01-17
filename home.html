@@ -281,6 +281,13 @@
         </section>
 
         <section class="section reveal delay-1">
+            <h2>Latest announcements</h2>
+            <div id="announcementGrid" class="grid-3">
+                <div class="card">Loading announcements...</div>
+            </div>
+        </section>
+
+        <section class="section reveal delay-1">
             <h2>Who this serves</h2>
             <div class="grid-3">
                 <div class="card">
@@ -355,6 +362,7 @@
         const navSignIn = document.getElementById('navSignIn');
         const navSignOut = document.getElementById('navSignOut');
         const continueBtn = document.getElementById('continueBtn');
+        const announcementGrid = document.getElementById('announcementGrid');
 
         const routeByRole = (role) => {
             if (role === 'teacher') {
@@ -382,6 +390,46 @@
             continueBtn.onclick = () => routeByRole(user.role);
         };
 
+        const escapeHtml = (value) => {
+            if (value === null || value === undefined) return '';
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        };
+
+        const renderAnnouncements = (items) => {
+            if (!items.length) {
+                announcementGrid.innerHTML = '<div class="card">No announcements available yet.</div>';
+                return;
+            }
+            announcementGrid.innerHTML = items.map(item => {
+                const dateText = item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Recent';
+                return `
+                    <div class="card">
+                        <div class="flex items-center justify-between gap-3 flex-wrap">
+                            <h3 class="text-lg font-semibold">${escapeHtml(item.title)}</h3>
+                            <span class="text-xs text-slate-500">${dateText}</span>
+                        </div>
+                        <p class="text-slate-600 mt-2 whitespace-pre-wrap">${escapeHtml(item.body)}</p>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        const loadAnnouncements = async () => {
+            try {
+                const response = await fetch('/api/announcements?audience=all&limit=3');
+                if (!response.ok) throw new Error('Failed to load announcements');
+                const data = await response.json();
+                renderAnnouncements(data);
+            } catch (error) {
+                announcementGrid.innerHTML = '<div class="card">Announcements are temporarily unavailable.</div>';
+            }
+        };
+
         const loadAuth = async () => {
             try {
                 const response = await fetch('/api/auth/me');
@@ -399,6 +447,7 @@
         });
 
         loadAuth();
+        loadAnnouncements();
     </script>
 </body>
 </html>

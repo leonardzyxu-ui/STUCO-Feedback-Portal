@@ -100,6 +100,7 @@ class Teacher(BaseModel):
     year_6 = db.Column(db.Boolean, default=False)
     year_7 = db.Column(db.Boolean, default=False)
     year_8 = db.Column(db.Boolean, default=False)
+    is_active = db.Column(db.Boolean, default=True)
 
 class Feedback(BaseModel):
     __tablename__ = 'feedback'
@@ -161,6 +162,50 @@ class CategorySummary(BaseModel):
     last_updated = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
     raw_positive_bullets = db.Column(db.JSON, nullable=True)
     raw_actionable_bullets = db.Column(db.JSON, nullable=True)
+
+class Category(BaseModel):
+    __tablename__ = 'categories'
+    id = db.Column(db.Integer, primary_key=True)
+    slug = db.Column(db.String(50), unique=True, nullable=False)
+    title = db.Column(db.String(120), nullable=False)
+    description = db.Column(db.String(255), nullable=True)
+    icon = db.Column(db.String(50), nullable=True)
+    context_label = db.Column(db.String(120), nullable=True)
+    requires_teacher = db.Column(db.Boolean, default=False)
+    is_active = db.Column(db.Boolean, default=True)
+    sort_order = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=db.func.now())
+
+class Announcement(BaseModel):
+    __tablename__ = 'announcements'
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(140), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    audience = db.Column(db.String(30), default='all') # 'all', 'student', 'teacher'
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=db.func.now())
+    updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
+    created_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
+class FeedbackStatusHistory(BaseModel):
+    __tablename__ = 'feedback_status_history'
+    id = db.Column(db.Integer, primary_key=True)
+    feedback_id = db.Column(db.Integer, db.ForeignKey('feedback.id', ondelete='CASCADE'), nullable=False)
+    old_status = db.Column(db.String(50), nullable=True)
+    new_status = db.Column(db.String(50), nullable=False)
+    changed_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    changed_at = db.Column(db.DateTime, default=db.func.now())
+    note = db.Column(db.String(255), nullable=True)
+
+class AuditLog(BaseModel):
+    __tablename__ = 'audit_logs'
+    id = db.Column(db.Integer, primary_key=True)
+    actor_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    action = db.Column(db.String(80), nullable=False)
+    target_type = db.Column(db.String(80), nullable=True)
+    target_id = db.Column(db.String(80), nullable=True)
+    details = db.Column(db.JSON, nullable=True)
+    created_at = db.Column(db.DateTime, default=db.func.now())
 
 # ======================================================================
 # --- Utility Functions & Auth ---
@@ -244,6 +289,9 @@ def ensure_schema_updates():
         ],
         "feedback": [
             ("created_at", "DATETIME")
+        ],
+        "teachers": [
+            ("is_active", "BOOLEAN")
         ]
     }
     with db.engine.begin() as connection:
@@ -259,6 +307,40 @@ def ensure_schema_updates():
                     print(f"INFO: Added column '{column_name}' to '{table}'.")
                 except Exception as exc:
                     print(f"WARNING: Could not add column '{column_name}' to '{table}': {exc}")
+
+
+def normalize_slug(value):
+    value = (value or "").strip().lower()
+    value = re.sub(r"[^a-z0-9\\s-]", "", value)
+    value = re.sub(r"\\s+", "-", value)
+    return value[:50]
+
+
+def log_audit(action, target_type=None, target_id=None, details=None, actor_id=None):
+    try:
+        if actor_id is None and hasattr(g, "user") and g.user:
+            actor_id = g.user.id
+        entry = AuditLog(
+            actor_user_id=actor_id,
+            action=action,
+            target_type=target_type,
+            target_id=str(target_id) if target_id is not None else None,
+            details=details
+        )
+        db.session.add(entry)
+    except Exception as exc:
+        print(f"WARNING: Failed to write audit log: {exc}")
+
+
+def record_feedback_status(feedback_id, old_status, new_status, actor_id=None, note=None):
+    entry = FeedbackStatusHistory(
+        feedback_id=feedback_id,
+        old_status=old_status,
+        new_status=new_status,
+        changed_by_user_id=actor_id,
+        note=note
+    )
+    db.session.add(entry)
 
 # ======================================================================
 # --- AI Functions (Toxicity & Summarization) ---
@@ -713,62 +795,88 @@ def open_browser():
 # ======================================================================
 def seed_data():
     """Populates the database *only if it is empty*."""
-    if db.session.query(User).first() is not None:
-        print("INFO: Database already contains data. Skipping seed.")
-        return
-    print("INFO: Database is empty. Seeding initial data...")
-    demo_student_password = os.getenv('DEMO_STUDENT_PASSWORD', 'student123')
-    demo_teacher_password = os.getenv('DEMO_TEACHER_PASSWORD', 'teacher123')
-    demo_admin_password = os.getenv('DEMO_ADMIN_PASSWORD', 'admin123')
-    db.session.add_all([
-        User(id=1, azure_oid='student_1', email='student@test.com', name='Student A', role='student', password_hash=generate_password_hash(demo_student_password)),
-        User(id=2, azure_oid='teacher_1', email='harper@test.com', name='Mr. Harper', role='teacher', password_hash=generate_password_hash(demo_teacher_password)),
-        User(id=3, azure_oid='admin_1', email='chen@test.com', name='Ms. Chen', role='stuco_admin', password_hash=generate_password_hash(demo_admin_password))
-    ])
-    db.session.commit()
-    db.session.add_all([
-        Teacher(id=1, user_id=2, name='Mr. Harper', email='harper@test.com', year_6=True, year_7=True, year_8=False),
-        Teacher(id=2, user_id=None, name='Ms. Williams', email='williams@test.com', year_6=True, year_7=False, year_8=True),
-        Teacher(id=3, user_id=None, name='Ms. Chen (Admin)', email='chen@test.com', year_6=True, year_7=True, year_8=True)
-    ])
-    db.session.commit()
-    
-    f1 = Feedback(id=1, teacher_id=1, year_level_submitted='Year 7', feedback_text='Mr. Harper is a great teacher! His explanations are very clear.', willing_to_share_name=True, submitted_by_user_id=1, category='teacher', rating_clarity=5, rating_pacing=4, rating_resources=5, rating_support=5)
-    f2 = Feedback(id=2, teacher_id=None, year_level_submitted='N/A', feedback_text='The cafeteria food, especially the pasta, has been excellent this week.', context_detail='Upper School Hot Lunch', willing_to_share_name=False, submitted_by_user_id=1, category='food')
-    f3 = Feedback(id=3, teacher_id=None, year_level_submitted='N/A', feedback_text='This teacher is a horrible bully and should be fired! I hate their lessons.', context_detail='Advisory', willing_to_share_name=False, submitted_by_user_id=1, category='other')
-    f4 = Feedback(id=4, teacher_id=None, year_level_submitted='N/A', feedback_text='The new uniform policy is unclear. We need more examples of what is allowed.', context_detail='Uniform Policy', willing_to_share_name=False, submitted_by_user_id=1, category='policy')
-    f5 = Feedback(id=5, teacher_id=1, year_level_submitted='Year 7', feedback_text='This class is a bit too fast and the homework is hard.', willing_to_share_name=False, submitted_by_user_id=1, category='teacher', rating_clarity=3, rating_pacing=2, rating_resources=3, rating_support=4)
+    seeded_users = False
+    if db.session.query(User).first() is None:
+        print("INFO: Database is empty. Seeding initial data...")
+        demo_student_password = os.getenv('DEMO_STUDENT_PASSWORD', 'student123')
+        demo_teacher_password = os.getenv('DEMO_TEACHER_PASSWORD', 'teacher123')
+        demo_admin_password = os.getenv('DEMO_ADMIN_PASSWORD', 'admin123')
+        db.session.add_all([
+            User(id=1, azure_oid='student_1', email='student@test.com', name='Student A', role='student', password_hash=generate_password_hash(demo_student_password)),
+            User(id=2, azure_oid='teacher_1', email='harper@test.com', name='Mr. Harper', role='teacher', password_hash=generate_password_hash(demo_teacher_password)),
+            User(id=3, azure_oid='admin_1', email='chen@test.com', name='Ms. Chen', role='stuco_admin', password_hash=generate_password_hash(demo_admin_password))
+        ])
+        db.session.commit()
+        db.session.add_all([
+            Teacher(id=1, user_id=2, name='Mr. Harper', email='harper@test.com', year_6=True, year_7=True, year_8=False, is_active=True),
+            Teacher(id=2, user_id=None, name='Ms. Williams', email='williams@test.com', year_6=True, year_7=False, year_8=True, is_active=True),
+            Teacher(id=3, user_id=None, name='Ms. Chen (Admin)', email='chen@test.com', year_6=True, year_7=True, year_8=True, is_active=True)
+        ])
+        db.session.commit()
+        seeded_users = True
 
-    db.session.add_all([f1, f2, f3, f4, f5])
-    db.session.commit()
-    
-    for feedback_item in db.session.query(Feedback).filter(Feedback.status == 'New').all():
-        screening = run_toxicity_check(feedback_item.feedback_text)
-        feedback_item.toxicity_score = screening['toxicity_score']
-        feedback_item.is_inappropriate = screening['is_inappropriate']
-        
-        if feedback_item.is_inappropriate:
-            feedback_item.status = 'Screened - Escalation'
-        else:
-            feedback_item.status = 'Approved' 
-            feedback_item.is_summary_approved = True 
-            
-            if feedback_item.category == 'teacher':
-                job = SummaryJobQueue(job_type='teacher', target_id=str(feedback_item.teacher_id), feedback_id=feedback_item.id, status='pending')
-                db.session.add(job)
+        f1 = Feedback(id=1, teacher_id=1, year_level_submitted='Year 7', feedback_text='Mr. Harper is a great teacher! His explanations are very clear.', willing_to_share_name=True, submitted_by_user_id=1, category='teacher', rating_clarity=5, rating_pacing=4, rating_resources=5, rating_support=5)
+        f2 = Feedback(id=2, teacher_id=None, year_level_submitted='N/A', feedback_text='The cafeteria food, especially the pasta, has been excellent this week.', context_detail='Upper School Hot Lunch', willing_to_share_name=False, submitted_by_user_id=1, category='food')
+        f3 = Feedback(id=3, teacher_id=None, year_level_submitted='N/A', feedback_text='This teacher is a horrible bully and should be fired! I hate their lessons.', context_detail='Advisory', willing_to_share_name=False, submitted_by_user_id=1, category='other')
+        f4 = Feedback(id=4, teacher_id=None, year_level_submitted='N/A', feedback_text='The new uniform policy is unclear. We need more examples of what is allowed.', context_detail='Uniform Policy', willing_to_share_name=False, submitted_by_user_id=1, category='policy')
+        f5 = Feedback(id=5, teacher_id=1, year_level_submitted='Year 7', feedback_text='This class is a bit too fast and the homework is hard.', willing_to_share_name=False, submitted_by_user_id=1, category='teacher', rating_clarity=3, rating_pacing=2, rating_resources=3, rating_support=4)
+
+        db.session.add_all([f1, f2, f3, f4, f5])
+        db.session.commit()
+
+        for feedback_item in db.session.query(Feedback).filter(Feedback.status == 'New').all():
+            screening = run_toxicity_check(feedback_item.feedback_text)
+            feedback_item.toxicity_score = screening['toxicity_score']
+            feedback_item.is_inappropriate = screening['is_inappropriate']
+
+            if feedback_item.is_inappropriate:
+                feedback_item.status = 'Screened - Escalation'
             else:
-                job = SummaryJobQueue(job_type='category', target_id=feedback_item.category, feedback_id=feedback_item.id, status='pending')
-                db.session.add(job)
+                feedback_item.status = 'Approved'
+                feedback_item.is_summary_approved = True
 
-    db.session.commit()
-    
-    cr1 = ClarificationRequest(teacher_id=1, question_text="A summary mentioned 'pacing' was a problem. Could I know if this refers to the homework pacing or the in-class lecture pacing?", status='pending')
-    db.session.add(cr1)
-    db.session.commit()
-    
-    f3_toxic = db.session.get(Feedback, 3)
-    if f3_toxic and f3_toxic.is_inappropriate:
-        print("INFO: Seeded safeguarding item (ID 3) correctly flagged for escalation.")
+                if feedback_item.category == 'teacher':
+                    job = SummaryJobQueue(job_type='teacher', target_id=str(feedback_item.teacher_id), feedback_id=feedback_item.id, status='pending')
+                    db.session.add(job)
+                else:
+                    job = SummaryJobQueue(job_type='category', target_id=feedback_item.category, feedback_id=feedback_item.id, status='pending')
+                    db.session.add(job)
+            record_feedback_status(feedback_item.id, None, feedback_item.status, None, note='Seeded data')
+
+        db.session.commit()
+
+        cr1 = ClarificationRequest(teacher_id=1, question_text="A summary mentioned 'pacing' was a problem. Could I know if this refers to the homework pacing or the in-class lecture pacing?", status='pending')
+        db.session.add(cr1)
+        db.session.commit()
+
+        f3_toxic = db.session.get(Feedback, 3)
+        if f3_toxic and f3_toxic.is_inappropriate:
+            print("INFO: Seeded safeguarding item (ID 3) correctly flagged for escalation.")
+
+    if Category.query.first() is None:
+        category_seed = [
+            Category(slug='teacher', title='Teacher Suggestions', description='Share classroom feedback and ratings.', icon='teacher', context_label='Class or subject detail', requires_teacher=True, sort_order=1, is_active=True),
+            Category(slug='food', title='Food', description='Menus, service, and dining flow.', icon='food', context_label='Dining hall area or specific item', requires_teacher=False, sort_order=2, is_active=True),
+            Category(slug='policy', title='Policy', description='Rules, expectations, and clarity.', icon='policy', context_label='Related policy or department', requires_teacher=False, sort_order=3, is_active=True),
+            Category(slug='equipment', title='General services', description='Equipment, facilities, support.', icon='equipment', context_label='Equipment or location', requires_teacher=False, sort_order=4, is_active=True),
+            Category(slug='school-buses', title='School buses', description='Routes, timing, and safety.', icon='school-buses', context_label='Route, bus number, or time', requires_teacher=False, sort_order=5, is_active=True),
+            Category(slug='other', title='Other', description='Anything else on your mind.', icon='other', context_label='Relevant detail (optional)', requires_teacher=False, sort_order=6, is_active=True),
+            Category(slug='help', title='Help', description='Reach out for support and care.', icon='help', context_label='Who should know? (optional)', requires_teacher=False, sort_order=7, is_active=True)
+        ]
+        db.session.add_all(category_seed)
+        db.session.commit()
+
+    if Announcement.query.first() is None:
+        welcome = Announcement(
+            title='Welcome to the STUCO Feedback Portal',
+            body='This is the new home for student voice. Submit feedback, track updates, and expect clearer follow-through.',
+            audience='all',
+            is_active=True,
+            created_by_user_id=3 if seeded_users else None
+        )
+        db.session.add(welcome)
+        db.session.commit()
+
     print("INFO: Seed data finished.")
 
 
@@ -798,6 +906,61 @@ def teacher_dashboard():
 @app.route('/stuco_admin_dashboard.html', methods=['GET'])
 def stuco_admin_dashboard():
     return render_template('stuco_admin_dashboard.html')
+
+# ======================================================================
+# --- Public API Routes ---
+# ======================================================================
+@app.route('/api/categories', methods=['GET'])
+def get_categories():
+    include_inactive = request.args.get('include_inactive', '0').lower() in {'1', 'true', 'yes'}
+    query = Category.query
+    if not include_inactive:
+        query = query.filter(Category.is_active.is_(True))
+    categories = query.order_by(Category.sort_order, Category.title).all()
+    return jsonify([
+        {
+            'id': c.id,
+            'slug': c.slug,
+            'title': c.title,
+            'description': c.description,
+            'icon': c.icon,
+            'context_label': c.context_label,
+            'requires_teacher': c.requires_teacher,
+            'is_active': c.is_active,
+            'sort_order': c.sort_order
+        }
+        for c in categories
+    ])
+
+
+@app.route('/api/announcements', methods=['GET'])
+def get_announcements():
+    audience = (request.args.get('audience') or 'all').strip().lower()
+    limit = request.args.get('limit')
+    query = Announcement.query.filter(Announcement.is_active.is_(True))
+    if audience in {'student', 'teacher'}:
+        query = query.filter(Announcement.audience.in_(['all', audience]))
+    elif audience != 'all':
+        query = query.filter(Announcement.audience == 'all')
+    query = query.order_by(Announcement.created_at.desc())
+    if limit:
+        try:
+            limit_val = max(1, min(int(limit), 20))
+        except ValueError:
+            limit_val = 5
+        query = query.limit(limit_val)
+    announcements = query.all()
+    return jsonify([
+        {
+            'id': a.id,
+            'title': a.title,
+            'body': a.body,
+            'audience': a.audience,
+            'created_at': a.created_at.isoformat(),
+            'updated_at': a.updated_at.isoformat()
+        }
+        for a in announcements
+    ])
 
 # ======================================================================
 # --- Auth API Routes ---
@@ -952,7 +1115,7 @@ def get_current_user():
 @app.route('/api/teachers', methods=['GET'])
 def get_teachers():
     year_level = request.args.get('year_level') 
-    query = Teacher.query
+    query = Teacher.query.filter(Teacher.is_active.is_(True))
     if year_level == 'Year 6':
         query = query.filter(Teacher.year_6.is_(True))
     elif year_level == 'Year 7':
@@ -970,7 +1133,7 @@ def submit_feedback():
         return jsonify({'error': 'Invalid or missing JSON body.'}), 400
 
     feedback_text = data.get('feedback_text')
-    category = data.get('category')
+    category = (data.get('category') or '').strip().lower()
     teacher_id = data.get('teacher_id')
     year_level = data.get('year_level')
     willing_to_share_name = data.get('willing_to_share_name', False)
@@ -978,20 +1141,24 @@ def submit_feedback():
     
     if not feedback_text or not category:
         return jsonify({'error': 'Missing required fields.'}), 400
+    category_record = Category.query.filter_by(slug=category, is_active=True).first()
+    if not category_record:
+        return jsonify({'error': 'Invalid or inactive category.'}), 400
     if len(feedback_text) > 2000:
         return jsonify({'error': 'Feedback text exceeds 2000 characters.'}), 400
     if context_detail and len(context_detail) > 255:
         return jsonify({'error': 'Context detail exceeds 255 characters.'}), 400
     
     teacher_id_int = None
-    if category == 'teacher':
+    if category_record.requires_teacher:
         if not teacher_id:
             return jsonify({'error': 'Teacher feedback requires a teacher_id.'}), 400
         try:
             teacher_id_int = int(teacher_id)
         except ValueError:
             return jsonify({'error': 'Invalid teacher ID format.'}), 400
-        if not db.session.get(Teacher, teacher_id_int):
+        teacher_profile = db.session.get(Teacher, teacher_id_int)
+        if not teacher_profile or not teacher_profile.is_active:
             return jsonify({'error': 'Teacher not found.'}), 400
     
     try:
@@ -1001,7 +1168,7 @@ def submit_feedback():
         new_feedback = Feedback(
             submitted_by_user_id=g.user.id,
             feedback_text=feedback_text,
-            category=category,
+            category=category_record.slug,
             teacher_id=teacher_id_int, 
             year_level_submitted=year_level,
             context_detail=context_detail,
@@ -1024,16 +1191,17 @@ def submit_feedback():
             new_feedback.is_summary_approved = True
         
         db.session.add(new_feedback)
-        db.session.commit() 
+        db.session.flush()
+        record_feedback_status(new_feedback.id, None, new_feedback.status, g.user.id)
         
         if not is_inappropriate:
-            job_type = 'teacher' if category == 'teacher' else 'category'
-            target_id = str(teacher_id_int) if category == 'teacher' else category
+            job_type = 'teacher' if category_record.requires_teacher else 'category'
+            target_id = str(teacher_id_int) if job_type == 'teacher' else category_record.slug
             
             print(f"API: Adding '{job_type}' summary job for target '{target_id}'.")
             job = SummaryJobQueue(job_type=job_type, target_id=target_id, feedback_id=new_feedback.id)
             db.session.add(job)
-            db.session.commit()
+        db.session.commit()
             
         return jsonify({'message': f'Feedback submitted successfully. Status: {new_feedback.status}', 'id': new_feedback.id, 'status': new_feedback.status}), 201
     
@@ -1054,6 +1222,19 @@ def get_student_feedback():
         query = query.filter(Feedback.status == status_filter)
 
     feedback_items = query.order_by(Feedback.id.desc()).all()
+    feedback_ids = [item.id for item in feedback_items]
+    history_map = defaultdict(list)
+    if feedback_ids:
+        history_entries = FeedbackStatusHistory.query.filter(
+            FeedbackStatusHistory.feedback_id.in_(feedback_ids)
+        ).order_by(FeedbackStatusHistory.changed_at.asc()).all()
+        for entry in history_entries:
+            history_map[entry.feedback_id].append({
+                'old_status': entry.old_status,
+                'new_status': entry.new_status,
+                'changed_at': entry.changed_at.isoformat(),
+                'note': entry.note
+            })
     results = []
     for item in feedback_items:
         teacher_name = None
@@ -1067,7 +1248,8 @@ def get_student_feedback():
             'teacher_name': teacher_name,
             'context_detail': item.context_detail,
             'year_level': item.year_level_submitted,
-            'created_at': item.created_at.isoformat() if item.created_at else None
+            'created_at': item.created_at.isoformat() if item.created_at else None,
+            'status_history': history_map.get(item.id, [])
         })
     return jsonify(results)
 
@@ -1202,6 +1384,7 @@ def get_admin_feedback_queue():
     query = Feedback.query.filter(Feedback.status == status_filter)
     if category_filter and category_filter != 'all':
         query = query.filter(Feedback.category == category_filter)
+    category_lookup = {c.slug: c.title for c in Category.query.all()}
     queue_items = []
     for f in query.order_by(Feedback.id.desc()).all():
         teacher = db.session.get(Teacher, f.teacher_id)
@@ -1230,6 +1413,7 @@ def get_admin_feedback_queue():
             'id': f.id,
             'teacher_name': teacher_name,
             'category': f.category,
+            'category_title': category_lookup.get(f.category, f.category),
             'feedback_text': f.feedback_text,
             'context_detail': f.context_detail,
             'toxicity_score': f.toxicity_score,
@@ -1247,12 +1431,14 @@ def get_admin_feedback_queue():
 def get_category_summaries():
     try:
         summaries = CategorySummary.query.all()
+        category_lookup = {c.slug: c.title for c in Category.query.all()}
         summary_data = []
         for s in summaries:
             positive_bullets = get_summary_bullets(s, True)
             actionable_bullets = get_summary_bullets(s, False)
             summary_data.append({
                 'category_name': s.category_name,
+                'category_title': category_lookup.get(s.category_name, s.category_name),
                 'positive_bullets': positive_bullets,
                 'actionable_bullets': actionable_bullets,
                 'positive_summary': render_bullets_html(positive_bullets),
@@ -1264,12 +1450,304 @@ def get_category_summaries():
         print(f"ERROR fetching category summaries: {e}")
         return jsonify({"error": "Could not fetch category summaries."}), 500
 
+@app.route('/api/admin/categories', methods=['GET', 'POST'])
+@auth_required(role='stuco_admin')
+def admin_categories():
+    if request.method == 'GET':
+        categories = Category.query.order_by(Category.sort_order, Category.title).all()
+        return jsonify([
+            {
+                'id': c.id,
+                'slug': c.slug,
+                'title': c.title,
+                'description': c.description,
+                'icon': c.icon,
+                'context_label': c.context_label,
+                'requires_teacher': c.requires_teacher,
+                'is_active': c.is_active,
+                'sort_order': c.sort_order
+            }
+            for c in categories
+        ])
+
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({'error': 'Invalid or missing JSON body.'}), 400
+
+    title = (data.get('title') or '').strip()
+    slug = normalize_slug(data.get('slug') or title)
+    if not title or not slug:
+        return jsonify({'error': 'Title and slug are required.'}), 400
+    if Category.query.filter_by(slug=slug).first():
+        return jsonify({'error': 'Category slug already exists.'}), 409
+
+    try:
+        sort_order = int(data.get('sort_order') or 0)
+    except (TypeError, ValueError):
+        sort_order = 0
+
+    category = Category(
+        slug=slug,
+        title=title,
+        description=(data.get('description') or '').strip(),
+        icon=(data.get('icon') or '').strip(),
+        context_label=(data.get('context_label') or '').strip(),
+        requires_teacher=bool(data.get('requires_teacher')),
+        is_active=bool(data.get('is_active', True)),
+        sort_order=sort_order
+    )
+    db.session.add(category)
+    db.session.flush()
+    log_audit('category_created', 'category', category.id, details={'slug': slug})
+    db.session.commit()
+    return jsonify({'message': 'Category created.', 'id': category.id}), 201
+
+
+@app.route('/api/admin/categories/<int:category_id>', methods=['PUT', 'DELETE'])
+@auth_required(role='stuco_admin')
+def admin_category_detail(category_id):
+    category = db.session.get(Category, category_id)
+    if not category:
+        return jsonify({'error': 'Category not found.'}), 404
+
+    if request.method == 'DELETE':
+        if Feedback.query.filter_by(category=category.slug).first():
+            return jsonify({'error': 'Category has feedback attached. Deactivate instead.'}), 400
+        db.session.delete(category)
+        log_audit('category_deleted', 'category', category_id, details={'slug': category.slug})
+        db.session.commit()
+        return jsonify({'message': 'Category deleted.'}), 200
+
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({'error': 'Invalid or missing JSON body.'}), 400
+
+    category.title = (data.get('title') or category.title).strip()
+    category.description = (data.get('description') or category.description or '').strip()
+    category.icon = (data.get('icon') or category.icon or '').strip()
+    category.context_label = (data.get('context_label') or category.context_label or '').strip()
+    if data.get('requires_teacher') is not None:
+        category.requires_teacher = bool(data.get('requires_teacher'))
+    if data.get('is_active') is not None:
+        category.is_active = bool(data.get('is_active'))
+    if data.get('sort_order') is not None:
+        try:
+            category.sort_order = int(data.get('sort_order') or 0)
+        except (TypeError, ValueError):
+            category.sort_order = 0
+
+    log_audit('category_updated', 'category', category_id, details={'slug': category.slug})
+    db.session.commit()
+    return jsonify({'message': 'Category updated.'}), 200
+
+
+@app.route('/api/admin/teachers', methods=['GET', 'POST'])
+@auth_required(role='stuco_admin')
+def admin_teachers():
+    if request.method == 'GET':
+        teachers = Teacher.query.order_by(Teacher.name).all()
+        return jsonify([
+            {
+                'id': t.id,
+                'name': t.name,
+                'email': t.email,
+                'year_6': t.year_6,
+                'year_7': t.year_7,
+                'year_8': t.year_8,
+                'is_active': t.is_active,
+                'user_id': t.user_id,
+                'user_email': db.session.get(User, t.user_id).email if t.user_id else None
+            }
+            for t in teachers
+        ])
+
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({'error': 'Invalid or missing JSON body.'}), 400
+    name = (data.get('name') or '').strip()
+    email = normalize_email(data.get('email') or '')
+    if not name or not email:
+        return jsonify({'error': 'Name and email are required.'}), 400
+    if not is_valid_email(email):
+        return jsonify({'error': 'Invalid email address.'}), 400
+    existing = Teacher.query.filter_by(email=email).first()
+    if existing:
+        return jsonify({'error': 'Teacher with this email already exists.'}), 409
+
+    teacher = Teacher(
+        name=name,
+        email=email,
+        year_6=bool(data.get('year_6')),
+        year_7=bool(data.get('year_7')),
+        year_8=bool(data.get('year_8')),
+        is_active=bool(data.get('is_active', True))
+    )
+    user = User.query.filter_by(email=email).first()
+    if user and user.role == 'teacher':
+        teacher.user_id = user.id
+    db.session.add(teacher)
+    db.session.flush()
+    log_audit('teacher_created', 'teacher', teacher.id, details={'email': email})
+    db.session.commit()
+    return jsonify({'message': 'Teacher created.', 'id': teacher.id}), 201
+
+
+@app.route('/api/admin/teachers/<int:teacher_id>', methods=['PUT'])
+@auth_required(role='stuco_admin')
+def admin_teacher_detail(teacher_id):
+    teacher = db.session.get(Teacher, teacher_id)
+    if not teacher:
+        return jsonify({'error': 'Teacher not found.'}), 404
+
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({'error': 'Invalid or missing JSON body.'}), 400
+
+    if data.get('name') is not None:
+        teacher.name = (data.get('name') or teacher.name).strip()
+    if data.get('email') is not None:
+        email = normalize_email(data.get('email') or '')
+        if not is_valid_email(email):
+            return jsonify({'error': 'Invalid email address.'}), 400
+        duplicate = Teacher.query.filter(Teacher.email == email, Teacher.id != teacher_id).first()
+        if duplicate:
+            return jsonify({'error': 'Another teacher already uses this email.'}), 409
+        teacher.email = email
+    if data.get('year_6') is not None:
+        teacher.year_6 = bool(data.get('year_6'))
+    if data.get('year_7') is not None:
+        teacher.year_7 = bool(data.get('year_7'))
+    if data.get('year_8') is not None:
+        teacher.year_8 = bool(data.get('year_8'))
+    if data.get('is_active') is not None:
+        teacher.is_active = bool(data.get('is_active'))
+
+    if 'user_email' in data:
+        user_email = normalize_email(data.get('user_email') or '')
+        if not user_email:
+            teacher.user_id = None
+        else:
+            user = User.query.filter_by(email=user_email).first()
+            if not user:
+                return jsonify({'error': 'User not found for linking.'}), 404
+            if user.role != 'teacher':
+                return jsonify({'error': 'User is not a teacher role.'}), 400
+            linked = Teacher.query.filter(Teacher.user_id == user.id, Teacher.id != teacher_id).first()
+            if linked:
+                return jsonify({'error': 'User already linked to another teacher profile.'}), 409
+            teacher.user_id = user.id
+
+    log_audit('teacher_updated', 'teacher', teacher_id, details={'email': teacher.email})
+    db.session.commit()
+    return jsonify({'message': 'Teacher updated.'}), 200
+
+
+@app.route('/api/admin/announcements', methods=['GET', 'POST'])
+@auth_required(role='stuco_admin')
+def admin_announcements():
+    if request.method == 'GET':
+        announcements = Announcement.query.order_by(Announcement.created_at.desc()).all()
+        return jsonify([
+            {
+                'id': a.id,
+                'title': a.title,
+                'body': a.body,
+                'audience': a.audience,
+                'is_active': a.is_active,
+                'created_at': a.created_at.isoformat(),
+                'updated_at': a.updated_at.isoformat()
+            }
+            for a in announcements
+        ])
+
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({'error': 'Invalid or missing JSON body.'}), 400
+    title = (data.get('title') or '').strip()
+    body = (data.get('body') or '').strip()
+    if not title or not body:
+        return jsonify({'error': 'Title and body are required.'}), 400
+    audience = (data.get('audience') or 'all').strip().lower()
+    if audience not in {'all', 'student', 'teacher'}:
+        return jsonify({'error': 'Invalid audience.'}), 400
+
+    announcement = Announcement(
+        title=title,
+        body=body,
+        audience=audience,
+        is_active=bool(data.get('is_active', True)),
+        created_by_user_id=g.user.id
+    )
+    db.session.add(announcement)
+    db.session.flush()
+    log_audit('announcement_created', 'announcement', announcement.id, details={'audience': audience})
+    db.session.commit()
+    return jsonify({'message': 'Announcement created.', 'id': announcement.id}), 201
+
+
+@app.route('/api/admin/announcements/<int:announcement_id>', methods=['PUT', 'DELETE'])
+@auth_required(role='stuco_admin')
+def admin_announcement_detail(announcement_id):
+    announcement = db.session.get(Announcement, announcement_id)
+    if not announcement:
+        return jsonify({'error': 'Announcement not found.'}), 404
+
+    if request.method == 'DELETE':
+        db.session.delete(announcement)
+        log_audit('announcement_deleted', 'announcement', announcement_id)
+        db.session.commit()
+        return jsonify({'message': 'Announcement deleted.'}), 200
+
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({'error': 'Invalid or missing JSON body.'}), 400
+    if data.get('title') is not None:
+        announcement.title = (data.get('title') or announcement.title).strip()
+    if data.get('body') is not None:
+        announcement.body = (data.get('body') or announcement.body).strip()
+    if data.get('audience') is not None:
+        audience = (data.get('audience') or announcement.audience).strip().lower()
+        if audience not in {'all', 'student', 'teacher'}:
+            return jsonify({'error': 'Invalid audience.'}), 400
+        announcement.audience = audience
+    if data.get('is_active') is not None:
+        announcement.is_active = bool(data.get('is_active'))
+
+    log_audit('announcement_updated', 'announcement', announcement_id, details={'audience': announcement.audience})
+    db.session.commit()
+    return jsonify({'message': 'Announcement updated.'}), 200
+
+
+@app.route('/api/admin/audit_logs', methods=['GET'])
+@auth_required(role='stuco_admin')
+def admin_audit_logs():
+    limit = request.args.get('limit', '50')
+    try:
+        limit_val = max(1, min(int(limit), 200))
+    except ValueError:
+        limit_val = 50
+    logs = AuditLog.query.order_by(AuditLog.created_at.desc()).limit(limit_val).all()
+    return jsonify([
+        {
+            'id': log.id,
+            'actor_user_id': log.actor_user_id,
+            'actor_name': db.session.get(User, log.actor_user_id).name if log.actor_user_id else None,
+            'action': log.action,
+            'target_type': log.target_type,
+            'target_id': log.target_id,
+            'details': log.details,
+            'created_at': log.created_at.isoformat()
+        }
+        for log in logs
+    ])
+
 @app.route('/api/admin/feedback/<int:feedback_id>/approve', methods=['PUT'])
 @auth_required(role='stuco_admin')
 def approve_feedback_summary(feedback_id):
     feedback_item = db.session.get(Feedback, feedback_id)
     if not feedback_item:
         return jsonify({'error': 'Feedback not found.'}), 404
+    old_status = feedback_item.status
     feedback_item.is_summary_approved = True
     feedback_item.status = 'Approved'
     
@@ -1278,6 +1756,8 @@ def approve_feedback_summary(feedback_id):
     
     job = SummaryJobQueue(job_type=job_type, target_id=target_id, feedback_id=feedback_item.id)
     db.session.add(job)
+    record_feedback_status(feedback_item.id, old_status, feedback_item.status, g.user.id, note='Admin approved feedback')
+    log_audit('feedback_approved', 'feedback', feedback_item.id, details={'previous_status': old_status, 'new_status': feedback_item.status})
     db.session.commit()
     return jsonify({'message': f'Feedback ID {feedback_id} re-approved. Summary regenerating in background.'})
 
@@ -1287,6 +1767,7 @@ def retract_feedback_summary(feedback_id):
     feedback_item = db.session.get(Feedback, feedback_id)
     if not feedback_item:
         return jsonify({'error': 'Feedback not found.'}), 404
+    old_status = feedback_item.status
     feedback_item.is_summary_approved = False
     feedback_item.status = 'Retracted by Admin'
 
@@ -1295,6 +1776,8 @@ def retract_feedback_summary(feedback_id):
     
     job = SummaryJobQueue(job_type=job_type, target_id=target_id, feedback_id=feedback_item.id)
     db.session.add(job)
+    record_feedback_status(feedback_item.id, old_status, feedback_item.status, g.user.id, note='Admin retracted feedback')
+    log_audit('feedback_retracted', 'feedback', feedback_item.id, details={'previous_status': old_status, 'new_status': feedback_item.status})
     db.session.commit()
     return jsonify({'message': f'Feedback ID {feedback_id} retracted. Summary regenerating in background.'})
 
@@ -1305,6 +1788,7 @@ def delete_feedback(feedback_id):
         feedback_item = db.session.get(Feedback, feedback_id)
         if not feedback_item:
             return jsonify({'error': 'Feedback not found.'}), 404
+        old_status = feedback_item.status
         
         # Get target info *before* deleting
         job_type = 'teacher' if feedback_item.category == 'teacher' else 'category'
@@ -1314,6 +1798,8 @@ def delete_feedback(feedback_id):
         SummaryJobQueue.query.filter_by(feedback_id=feedback_id).delete()
         
         # Now, delete the item
+        record_feedback_status(feedback_item.id, old_status, 'Deleted', g.user.id, note='Admin deleted feedback')
+        log_audit('feedback_deleted', 'feedback', feedback_item.id, details={'previous_status': old_status})
         db.session.delete(feedback_item)
         db.session.commit()
         
@@ -1366,6 +1852,7 @@ def reply_to_clarification(request_id):
     try:
         clarification_req.admin_reply = reply_text
         clarification_req.status = 'resolved'
+        log_audit('clarification_replied', 'clarification_request', clarification_req.id, details={'teacher_id': clarification_req.teacher_id})
         db.session.commit()
         return jsonify({'message': 'Reply sent and request resolved.'}), 200
     except Exception as e:
@@ -1389,6 +1876,8 @@ def reset_database():
         db.create_all()
         ensure_schema_updates()
         seed_data()
+        log_audit('database_reset', 'database', 'all', details={'action': 'reset'})
+        db.session.commit()
         
         print("INFO: Database reset and re-seed successful.")
         

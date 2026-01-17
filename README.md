@@ -6,6 +6,8 @@ A Flask-based feedback platform for Student Council (STUCO) to collect anonymous
 - Session-based authentication with signup/login and invite codes for staff roles
 - Dedicated home page + student feedback hub + student dashboard
 - Three role-based dashboards: Student, Teacher, and STUCO Admin
+- Admin-managed categories, announcements, and teacher roster
+- Audit log and student status timeline for transparency
 - Student submissions across multiple categories (teacher, food, policy, equipment/GS, school buses, other, help)
 - Optional teacher-specific ratings (clarity, pacing, resources, support)
 - Optional contextual detail field for non-teacher categories

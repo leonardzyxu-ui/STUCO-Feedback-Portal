@@ -422,8 +422,8 @@
                         <h2 class="text-4xl sm:text-5xl font-bold leading-tight">Pick a topic. Share the detail. We do the routing.</h2>
                         <p class="mt-4 text-lg text-slate-600">This is the dedicated feedback hub. Choose a category, fill the form, and STUCO handles the rest.</p>
                         <div class="hero-actions">
-                            <button data-category="teacher" class="btn btn-primary nav-btn">Teacher feedback</button>
-                            <button data-category="food" class="btn btn-secondary nav-btn">Food and campus</button>
+                            <button id="primaryCategoryBtn" class="btn btn-primary nav-btn" data-category="">Loading...</button>
+                            <button id="secondaryCategoryBtn" class="btn btn-secondary nav-btn" data-category="">Loading...</button>
                         </div>
                     </div>
                     <div class="hero-card">
@@ -437,70 +437,8 @@
                 </div>
 
                 <div class="section-title">Choose a topic</div>
-                <div class="category-grid">
-                    <button data-category="teacher" class="category-card nav-btn" style="animation-delay: 0.05s;">
-                        <div class="category-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-                                <path d="M12 2a4 4 0 0 0-4 4v2a4 4 0 1 0 8 0V6a4 4 0 0 0-4-4Zm-7 18a7 7 0 0 1 14 0H5Z" />
-                            </svg>
-                        </div>
-                        <h4>Teacher suggestions</h4>
-                        <p>Share classroom feedback and ratings.</p>
-                    </button>
-                    <button data-category="food" class="category-card nav-btn" style="animation-delay: 0.1s;">
-                        <div class="category-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-                                <path d="M4 7a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v4a7 7 0 0 1-7 7H11a7 7 0 0 1-7-7V7Z" />
-                            </svg>
-                        </div>
-                        <h4>Food</h4>
-                        <p>Menus, service, and dining flow.</p>
-                    </button>
-                    <button data-category="policy" class="category-card nav-btn" style="animation-delay: 0.15s;">
-                        <div class="category-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-                                <path d="M7 4a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v2h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2V4Z" />
-                            </svg>
-                        </div>
-                        <h4>Policy</h4>
-                        <p>Rules, expectations, and clarity.</p>
-                    </button>
-                    <button data-category="equipment" class="category-card nav-btn" style="animation-delay: 0.2s;">
-                        <div class="category-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-                                <path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14l-4-2-4 2-4-2-4 2V5Z" />
-                            </svg>
-                        </div>
-                        <h4>General services</h4>
-                        <p>Equipment, facilities, support.</p>
-                    </button>
-                    <button data-category="school-buses" class="category-card nav-btn" style="animation-delay: 0.25s;">
-                        <div class="category-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-                                <path d="M5 3h14a2 2 0 0 1 2 2v11a3 3 0 0 1-3 3h-1a2 2 0 1 1-4 0H11a2 2 0 1 1-4 0H6a3 3 0 0 1-3-3V5a2 2 0 0 1 2-2Z" />
-                            </svg>
-                        </div>
-                        <h4>School buses</h4>
-                        <p>Routes, timing, and safety.</p>
-                    </button>
-                    <button data-category="other" class="category-card nav-btn" style="animation-delay: 0.3s;">
-                        <div class="category-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-                                <path d="M12 2a10 10 0 1 0 10 10A10.02 10.02 0 0 0 12 2Zm1 15h-2v-2h2Zm0-4h-2V7h2Z" />
-                            </svg>
-                        </div>
-                        <h4>Other</h4>
-                        <p>Anything else on your mind.</p>
-                    </button>
-                    <button data-category="help" class="category-card nav-btn" style="animation-delay: 0.35s;">
-                        <div class="category-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-                                <path d="M4 4h16a2 2 0 0 1 2 2v8a4 4 0 0 1-4 4H9l-5 4V6a2 2 0 0 1 2-2Z" />
-                            </svg>
-                        </div>
-                        <h4>Help</h4>
-                        <p>Reach out for support and care.</p>
-                    </button>
+                <div id="categoryGrid" class="category-grid">
+                    <div class="category-card">Loading categories...</div>
                 </div>
 
                 <div class="section-title">Recent submissions</div>
@@ -632,18 +570,11 @@
         const API_AUTH_ME = "/api/auth/me";
         const API_AUTH_LOGOUT = "/api/auth/logout";
         const API_STUDENT_FEEDBACK = "/api/student/feedback";
-        const CATEGORY_MAP = {
-            'teacher': 'Teacher Suggestions',
-            'policy': 'Policy Suggestions',
-            'food': 'Food Suggestions',
-            'equipment': 'General Services (GS)',
-            'school-buses': 'School Bus Service',
-            'other': 'Other Suggestions',
-            'help': 'Reaching Out for Help'
-        };
+        const API_CATEGORIES = "/api/categories";
         const YEAR_LEVEL_OPTIONS = ["Year 6", "Year 7", "Year 8"];
         const RATING_CATEGORIES = ['clarity', 'pacing', 'resources', 'support'];
         let currentRatings = { clarity: null, pacing: null, resources: null, support: null };
+        let categoryMap = {};
 
         // --- DOM ELEMENTS ---
         const homeScreen = document.getElementById('homeScreen');
@@ -651,7 +582,6 @@
         const backButton = document.getElementById('backButton');
         const currentCategoryTitle = document.getElementById('currentCategoryTitle');
         const selectedCategoryInput = document.getElementById('selectedCategory');
-        const navButtons = document.querySelectorAll('.nav-btn');
         const form = document.getElementById('feedbackForm');
         const submitBtn = document.getElementById('submitBtnInner');
         const yearLevelSelect = document.getElementById('yearLevel');
@@ -670,6 +600,9 @@
         const userPill = document.getElementById('userPill');
         const logoutBtn = document.getElementById('logoutBtn');
         const recentFeedback = document.getElementById('recentFeedback');
+        const primaryCategoryBtn = document.getElementById('primaryCategoryBtn');
+        const secondaryCategoryBtn = document.getElementById('secondaryCategoryBtn');
+        const categoryGrid = document.getElementById('categoryGrid');
         let shareName = false;
 
         // --- UTILITIES ---
@@ -754,13 +687,7 @@
         };
 
         const getContextLabelText = (category) => {
-            switch (category) {
-                case 'policy': return "Related policy or department (e.g., Uniform Policy)";
-                case 'food': return "Dining hall area or specific item";
-                case 'equipment': return "Equipment or location";
-                case 'school-buses': return "Route, bus number, or time";
-                default: return "Relevant detail (optional)";
-            }
+            return categoryMap[category]?.context_label || "Relevant detail (optional)";
         };
 
         const statusBadge = (status) => {
@@ -771,22 +698,86 @@
             return 'badge blue';
         };
 
+        const ICON_MAP = {
+            'teacher': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M12 2a4 4 0 0 0-4 4v2a4 4 0 1 0 8 0V6a4 4 0 0 0-4-4Zm-7 18a7 7 0 0 1 14 0H5Z" /></svg>',
+            'food': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M4 7a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v4a7 7 0 0 1-7 7H11a7 7 0 0 1-7-7V7Z" /></svg>',
+            'policy': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M7 4a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v2h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2V4Z" /></svg>',
+            'equipment': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14l-4-2-4 2-4-2-4 2V5Z" /></svg>',
+            'school-buses': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M5 3h14a2 2 0 0 1 2 2v11a3 3 0 0 1-3 3h-1a2 2 0 1 1-4 0H11a2 2 0 1 1-4 0H6a3 3 0 0 1-3-3V5a2 2 0 0 1 2-2Z" /></svg>',
+            'other': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M12 2a10 10 0 1 0 10 10A10.02 10.02 0 0 0 12 2Zm1 15h-2v-2h2Zm0-4h-2V7h2Z" /></svg>',
+            'help': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M4 4h16a2 2 0 0 1 2 2v8a4 4 0 0 1-4 4H9l-5 4V6a2 2 0 0 1 2-2Z" /></svg>'
+        };
+
+        const renderCategories = (categories) => {
+            if (!categories.length) {
+                categoryGrid.innerHTML = '<div class="category-card">No categories available.</div>';
+                primaryCategoryBtn.textContent = 'No categories';
+                secondaryCategoryBtn.classList.add('hidden');
+                return;
+            }
+
+            categoryMap = categories.reduce((acc, item) => {
+                acc[item.slug] = item;
+                return acc;
+            }, {});
+
+            categoryGrid.innerHTML = categories.map((item, index) => {
+                const icon = ICON_MAP[item.icon] || ICON_MAP[item.slug] || ICON_MAP.other;
+                return `
+                    <button data-category="${item.slug}" class="category-card nav-btn" style="animation-delay: ${0.05 + index * 0.05}s;">
+                        <div class="category-icon">${icon}</div>
+                        <h4>${escapeHtml(item.title)}</h4>
+                        <p>${escapeHtml(item.description || '')}</p>
+                    </button>
+                `;
+            }).join('');
+
+            const heroPrimary = categories[0];
+            const heroSecondary = categories[1] || categories[0];
+            if (heroPrimary) {
+                primaryCategoryBtn.dataset.category = heroPrimary.slug;
+                primaryCategoryBtn.textContent = heroPrimary.title;
+                primaryCategoryBtn.classList.remove('hidden');
+            }
+            if (heroSecondary) {
+                secondaryCategoryBtn.dataset.category = heroSecondary.slug;
+                secondaryCategoryBtn.textContent = heroSecondary.title;
+                secondaryCategoryBtn.classList.remove('hidden');
+            } else {
+                secondaryCategoryBtn.classList.add('hidden');
+            }
+        };
+
+        const loadCategories = async () => {
+            try {
+                const response = await fetch(API_CATEGORIES);
+                if (!response.ok) throw new Error('Unable to load categories');
+                const items = await response.json();
+                const active = items.filter(item => item.is_active !== false);
+                renderCategories(active);
+            } catch (error) {
+                categoryGrid.innerHTML = '<div class="category-card">Categories are unavailable right now.</div>';
+                primaryCategoryBtn.textContent = 'Categories unavailable';
+                secondaryCategoryBtn.classList.add('hidden');
+            }
+        };
+
         const renderRecentFeedback = (items) => {
             if (!items.length) {
                 recentFeedback.innerHTML = '<div class="feed-card">No submissions yet. Your first feedback will show up here.</div>';
                 return;
             }
             recentFeedback.innerHTML = items.slice(0, 3).map(item => {
-                const label = CATEGORY_MAP[item.category] || item.category;
+                const label = escapeHtml(categoryMap[item.category]?.title || item.category);
                 const teacher = item.teacher_name ? `Teacher: ${escapeHtml(item.teacher_name)}` : 'General feedback';
                 const dateText = item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Recent';
                 return `
                     <div class="feed-card">
                         <div class="flex items-center justify-between gap-3 flex-wrap">
                             <h4 class="text-lg font-semibold">${label}</h4>
-                            <span class="${statusBadge(item.status)}">${item.status}</span>
+                            <span class="${statusBadge(item.status)}">${escapeHtml(item.status)}</span>
                         </div>
-                        <p class="text-sm text-slate-500 mt-2">${teacher} · ${dateText}</p>
+                        <p class="text-sm text-slate-500 mt-2">${teacher} - ${dateText}</p>
                         ${item.context_detail ? `<p class="text-sm text-slate-600 mt-2">Context: ${escapeHtml(item.context_detail)}</p>` : ''}
                     </div>
                 `;
@@ -806,13 +797,17 @@
 
         // --- FORM STAGE CONTROL LOGIC ---
         const goToForm = (category) => {
-            const isTeacher = category === 'teacher';
-            const isGeneralContext = ['policy', 'food', 'equipment', 'other', 'school-buses', 'help'].includes(category);
+            const categoryData = categoryMap[category];
+            if (!categoryData) {
+                return;
+            }
+            const isTeacher = categoryData?.requires_teacher;
+            const isGeneralContext = !isTeacher;
 
             homeScreen.classList.add('hidden-page');
             formContainer.classList.remove('hidden-page');
 
-            currentCategoryTitle.textContent = CATEGORY_MAP[category] || 'General Submission';
+            currentCategoryTitle.textContent = categoryData?.title || 'General Submission';
             selectedCategoryInput.value = category;
 
             setCollapsible(teacherFieldsContainer, isTeacher);
@@ -998,10 +993,11 @@
                 option.textContent = yl;
                 yearLevelSelect.appendChild(option);
             });
-            navButtons.forEach(button => {
-                button.addEventListener('click', () => {
+            document.addEventListener('click', (event) => {
+                const button = event.target.closest('.nav-btn');
+                if (button && button.dataset.category) {
                     goToForm(button.dataset.category);
-                });
+                }
             });
             backButton.addEventListener('click', goToHome);
             yearLevelSelect.addEventListener('change', populateTeachers);
@@ -1022,6 +1018,7 @@
             });
 
             updateShareNameToggle();
+            await loadCategories();
             loadRecentFeedback();
         });
     </script>
