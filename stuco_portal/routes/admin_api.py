@@ -217,7 +217,11 @@ def admin_teachers():
                     "year_8": t.year_8,
                     "is_active": t.is_active,
                     "user_id": t.user_id,
-                    "user_email": db.session.get(User, t.user_id).email if t.user_id else None,
+                    "user_email": (
+                        user.email
+                        if t.user_id and (user := db.session.get(User, t.user_id))
+                        else None
+                    ),
                 }
                 for t in teachers
             ]
@@ -402,9 +406,11 @@ def admin_audit_logs():
             {
                 "id": log.id,
                 "actor_user_id": log.actor_user_id,
-                "actor_name": db.session.get(User, log.actor_user_id).name
-                if log.actor_user_id
-                else None,
+                "actor_name": (
+                    user.name
+                    if log.actor_user_id and (user := db.session.get(User, log.actor_user_id))
+                    else None
+                ),
                 "action": log.action,
                 "target_type": log.target_type,
                 "target_id": log.target_id,
@@ -599,9 +605,8 @@ def reset_database():
         print("INFO: Database reset and re-seed successful.")
 
     finally:
-        if current_app.config.get("ENABLE_WORKER") and start_worker_thread(
-            current_app._get_current_object()
-        ):
+        app_obj = getattr(current_app, "_get_current_object", lambda: current_app)()
+        if current_app.config.get("ENABLE_WORKER") and start_worker_thread(app_obj):
             print("WORKER: Worker thread has been restarted.")
 
     return jsonify({"message": "Database has been successfully reset."}), 200

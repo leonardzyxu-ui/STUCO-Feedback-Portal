@@ -34,7 +34,7 @@ A Flask-based feedback platform for Student Council (STUCO) to collect anonymous
    source venv/bin/activate
    pip install -r requirements.txt
    ```
-2. (Optional) Create a `.env` with:
+2. (Optional) Copy `.env.example` to `.env` and update:
    ```bash
    DEEPSEEK_API_KEY=your_key_here
    OPENAI_API_KEY=your_key_here
@@ -114,6 +114,17 @@ You can still use mock auth by appending `?mock_user_id=1/2/3` when `ALLOW_MOCK_
 - In demo mode (no provider API key), local mock checks and summaries are used.
 - `AI_PROVIDER` selects DeepSeek/OpenAI/Gemini for summaries and moderation.
 - Approved feedback triggers a summary job; jobs are batched by target.
+
+## AI Provider Flow (How API Calls Work)
+- Provider selection happens in `stuco_portal/services/ai/providers.py` based on `AI_PROVIDER`.
+- `DEEPTHINK_OR_NOT=1` enables real API calls; otherwise summaries/toxicity fall back to mock data.
+- Summaries are generated in `stuco_portal/services/ai/summaries.py` after admin approval.
+- Multimodal admin calls are routed through `stuco_portal/routes/ai_api.py` using the same provider.
+
+## Attributions
+- Tailwind CSS (CDN build) for utility styling.
+- Chart.js for teacher dashboard charts.
+- Google Fonts: Space Grotesk, Manrope, and Source Sans 3.
 
 ## Project Structure
 - `app.py`: thin entrypoint for the Flask app
